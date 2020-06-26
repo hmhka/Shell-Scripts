@@ -1,0 +1,103 @@
+DbStatDump program creates 5 reports:
+
+DbStatDump.[date_time].DbStat.txt
+DbStatDump.[date_time].AreaStat.txt
+DbStatDump.[date_time].TableStat.txt
+DbStatDump.[date_time].IndexStat.txt
+DbStatDump.[date_time].ResrcStat.txt
+
+Reports are created for the interval since previous snapshot (previous program's run) or since db startup whatever is the most recent event. So you can run the program either by cron or just before db shutdown or whenever you need to get statistics.
+
+The reports are created in the current directory.
+
+Last snapshot is stored in the separate file. You can specify its location either in program (vLastSnapshot variable in DbStatDump.p) or through the -param. So the program will find the previous snapshot regardless from the current directory. By default it's the DbStatDump.LastSnapshot.d file in the current directory.
+
+The reports are the tab-separated lists. You can easily open them, for example, in Excel and do all sorting and/or selection there.
+
+In case of the errors the program will save them in DbStatDump.[date_time].Errors.log
+
+
+DbStatDump.[date_time].DbStat.txt
+---------------------------------
+Various statistics for all connected databases
+
+The report will allow to compare the activity and resource contention of the different databases.
+
+Databases are identified by DbHost+DbName+Full DbPath. So if the same application is running on the different sites you can concatenate the reports in a single file to compare statistics between the sites.
+
+Columns:
+DbHost, DbName, Full DbPath, UpTime, DbBlockSize, DbVersion, ConnectNotes, LastTranID, DbSize, BiSize, Spin, TableStatBase, TableRangeSize, HighestTableId, TableCount, IndexStatBase, IndexRangeSize, HighestIndexId, IndexCount, DbStartTime, DbTimeStamp, PrevSnapshot, CurrSnapshot, Interval, DbAccesses, RecRead, RecUpdate, RecCreate, RecDelete, BytesRead, BytesUpdate, BytesCreate, BytesDelete, IdxRead, IdxCreate, IdxDelete, DbReads, DatDbReads, IdxDbReads, DbWrites, DatDbWrites, IdxDbWrites, BiWrites, BiBytesWrtn, BiNotesWrtn, TransComm, LatchLock, LatchWait, ResrcLock, ResrcWait, SemWaits, TxeLock, TxeWait, ETime
+
+ETime is an execution time (in msec). Program is optimized to run as fast as possible even in client-server environment. One db snapshot should take less than a second (it's used to be 0.5 sec or less).
+
+PrevSnapshot is empty if the report interval begins since db startup.
+
+Warning: LatchLock and LatchWait are the totals of the corresponding fields in _Latch VST. The _Latch-lock field is the most active counter in database but unfortunately the field type is 32-bit integer even in 10.1B-10.2B (bug OE00198546) while the _Latch-Id, for example, is int64 since V10.1B. So this can cause overflow to negative values. In V10.1A the values will stay fixed at 2^31-1.
+
+
+DbStatDump.[date_time].AreaStat.txt
+-----------------------------------
+Per area statistics
+
+Columns:
+DbHost, DbName, AreaName, AreaNumber, AreaRPB, AreaClusterSize, AreaExtents, TableCount, IndexCount, AreaHWM, AreaReads, AreaWrites, TableRead, TableUpdate, TableCreate, TableDelete, IndexRead, IndexCreate, IndexDelete
+
+AreaReads, AreaWrites (db blocks) are based on _ActIOFile VST.
+Table*, Index* columns are calculated from _TableStat/_IndexStat.
+
+Report also includes two extra rows: WholeDb.DataBlocks and WholeDb.IndexBlocks
+where the values are calculated from _ActIOType, _ActRecord, _ActIndex.
+
+
+DbStatDump.[date_time].TableStat.txt
+------------------------------------
+Per table statistics
+
+Columns:
+DbHost, DbName, AreaName, TableName, IndexCount, TableRead, TableUpdate, TableCreate, TableDelete, TableOsRead
+
+IndexCount - the number of the indexes defined for a table.
+
+Table* columns are based on _TableStat. There are two instances of these columns: the value per whole interval and the value per sec.
+
+TableOsRead (only since V10.2B) - the number of OS reads (in blocks) caused by record reads from tables resided in type 2 storage areas.
+
+If a table id is outside tablerangesize than it still will be mentioned in the report but with the unknown values.
+
+Report also includes two extra rows: 'WholeDb Bytes' and 'WholeDb Records'. So you can easily calculate the contribution of each table to the total db activity.
+
+
+DbStatDump.[date_time].IndexStat.txt
+------------------------------------
+Per index statistics
+
+Columns:
+DbHost, DbName, AreaName, TableName, IndexName, IndexAttr, RootBlock, IndexRead, IndexCreate, IndexDelete, IndexOsRead
+
+Index* columns are based on _IndexStat. There are two instances of these columns: the value per whole interval and the value per sec.
+
+IndexOsRead (only since V10.2B) - the number of OS reads (in blocks) caused by reads from indexes resided in type 2 storage areas.
+
+IndexAttr: 
+p - primary, u - unique, w - word, c# - the number of components
+
+If a index id is outside indexrangesize than it still will be mentioned in the report but with the unknown values.
+
+Report also includes the extra row: 'WholeDb AllTables AllIndexes' with data from the _ActIndex VST.
+
+
+DbStatDump.[date_time].ResrcStat.txt
+------------------------------------
+Resource statistics
+
+This report will allow to watch out the resource contention created by table/index activity
+
+Columns:
+DbHost, DbName, ResrcType, ResrcName, ResrcLock, ResrcWait
+
+ResrcType:
+"Resource" is _Resrc VST
+"Latch" is _Latch VST
+"TxeLock" is _TxeLock VST
+
+There are two instances of the ResrcLock and ResrcWait columns: the value per whole interval and the value per sec.

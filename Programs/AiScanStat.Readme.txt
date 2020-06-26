@@ -1,0 +1,458 @@
+AiScanStat.p Readme File
+
+Program  : AiScanStat.p
+Purpose  : Various statistics based on AI scans (Progress V10.1A or higher).
+Author   : George Potemkin
+Created  : January 03, 2014
+Modified : March 04, 2014 18:00
+Version  : 3.1
+Location : ftp://ftp.progress-tech.ru/pub/Users/george/Programs/AiScanStat.p
+
+Before running the program you should prepare the outputs of rfutil -C aimage scan verbose -a <ai.files>.
+
+Open the program in Progress editor and set the parameters in the begining of the program:
+
+RUN LoadAreaInfo("path/to/your_db.st").
+
+RUN ReadAiDir(
+  "/path/to/dir",  /* Input directory in which AI scan files are stored.     */
+  ?,               /* MaxDirLevel: 1 - current dir only, ? - infinitely deep */
+  "ai_scans~~~.*", /* Mask for input scan file names.                        */
+  ?,               /* Output directory. Default value is <Input dir>.        */
+  ?                /* Prefix for output files. Program will creates 8 files  */
+).                 /* Default prefix is "<InputDir>.AiScanStat"              */
+
+3 of 5 input parameters of the ReadAiDir() procedure can be set to the unknown values. In this case it will use the default values defined in the procedure.
+
+Import of db structure file using LoadAreaInfo() is not mandary but it's recommended because you will have the area's info in the *.Areas.txt report.
+
+Before you run AiScanStat.p it would be a good idea to run AiScanInfo.p:
+ftp://ftp.progress-tech.ru/pub/Users/george/Programs/AiScanInfo.p
+AiScanInfo.p reads information from the headers and tails of the ai scan files and checks the consistency of these files:
+if all files have the same AIMAGE BEGIN time,
+if their AiSeqNum values are sequential,
+if the number of transactions at the end of AI file equal to the number of transactions at the beginning of next AI file.
+These conditions are not mandatory to run AiScanStat.p but it's recommended to analyze at one run the continuous set of AI files of the same database.
+AiScanStat.p might run the hours if there are gigabytes of AI scans to process.
+AiScanInfo.p will run almost instantly and you will immediately know if something is wrong with your set of AI scans.
+
+After viewing the reports created by AiScanStat.p you might like to check the full history of some transactions or the update history of some db blocks.
+Run grepAiScan.p:
+ftp://ftp.progress-tech.ru/pub/Users/george/Programs/grepAiScan.p
+It will extract from AI scans the transactions specified by the lists of Trids, Dbkeys or Users.
+
+AiScanStat.p creates 8 output files (Files.txt, Areas.txt, Dbkey.txt, Trans.txt, PerSec.txt, Ckpts.txt, Users.txt, Notes.txt) that are the tab separated list of the values. It's recommended to open and view them in Excel. The files report the total statistics for the whole period of the scanned AI files, the detailed statistics per interval between switching AI files, the basic statistics per interval between checkpoints and the basic statistics per second interval. The detailed description of the  columns in the reports are below but for beginning I would like to introduce the "jargon" used to describe the entities whose attributes are reported in the output files. I believe that Progress development uses their own terms for these entities but I don't have an access to any documents where they are described.
+
+
+Terms and Definitions
+
+Recovery notes a.k.a. BI/AI notes a.k.a. Transaction Log records
+----------------------------------------------------------------
+The notes are generated for every physical change of the database block or for the changes to memory-resident data structures like the transaction table. You can see the recovery notes using 'rfutil aimage scan verbose'. Details about the notes are not published but the short description of the basic notes can be found in kbase:
+"How to find out who deleted a record from a table ?"
+http://knowledgebase.progress.com/articles/Article/P18048
+In addition to the article:
+RL_RMDEL notes are also used when a recid lock (place holder) is deleted.
+RL_BKFRM & RL_BKFAM notes are used for the object blocks (bk_type 12).
+
+Note type (RL_*) identifies the operation to do.
+The number of note types by Progress versions:
+41  6.3C
+57  8.0-8.2
+72  9.0A
+80  9.1E
+84  10.0A (13 new types were added, 9 old types were removed)
+88  10.2A
+94  10.2B  (including 2 types reserved for future use: RL_SPARE_*)
+101 11.3.2 (including 2 RL_SPARE_* notes)
+
+Basic transaction activity uses just a bit more than 30 note types.
+
+"Update" notes
+--------------
+It's not an official term. I use it for the notes that describe the physical changes to the database blocks.
+Their description in 'aimage scan verbose' is ended by message 12529:
+Trid: TRID area = AREA   dbkey = DBKEY   update counter = UPDCTR (12529)
+Examples: RL_CXREM, RL_CXINS, RL_RMCR, RL_RMDEL, RL_RMCHG, RL_BKFRM, RL_BKFRB, RL_BKFAM, RL_BKFAB
+
+"System" notes:
+--------------
+I use this term for the notes that are not related to the physical changes.
+Their description in 'aimage scan verbose' is ended by message 12530:
+Trid: TRID dbkey = 0  update counter = 0 (12530)
+Examples: RL_IXDEL (logical index entry deletion), RL_TBGN, RL_TEND, RL_TMSAVE, RL_LOGOP_START, RL_LOGOP_END
+The number of "system" notes used to be 20% of all note count but there are the special cases when the number can rise up to 90% or higher!
+
+Almost all recovery notes are linked to the transactions with a few exceptions:
+
+"Non-transactional event" notes
+------------------------------
+It's the notes that are not linked to any transaction (always Trid 0) and they are created by the special db events.
+There are two notes of that kind:
+RL_INMEM - first recovery note in first bi block of bi cluster and it's created at checkpoint.
+RL_AIEXT - first recovery note in first ai block of ai file and it's created at AI switch.
+Progress writes both notes to both files (to BI as well as to AI file) .
+The notes store a starting location for db recovery and the list of the currently active transactions.
+RL_SEINC (sequence increment) note may be linked or not linked to a transaction but I treat RL_SEINC as a "transactional" note. At least it's not a "system" note.
+
+Time gaps
+---------
+Only transaction notes (RL_TBGN, RL_TEND) have the timestamps (reported by message 2598). Time gaps are the non-zero time difference between two successive transaction notes. Normally a database has a few transactions created or committed per second. The gaps can mean the idle time in transaction activity or a database can run one rather large transaction. The time gaps may also have the negative values (a.k.a. "time disorder"). In all cases where I saw the negative time gaps they seemed to be a side effect of the bug PSC00260992, OE00240333:
+Performance degradation with 100% busy MTX latch
+http://knowledgebase.progress.com/articles/Article/000042774
+
+Trans.txt report uses the "time gap" term in the slightly different meaning - as the non-zero time difference between two successive notes (of any kind) inside the same  transaction. The sum of these time gaps is the idle time of transaction. It can be a "thinking" time and "coffee breaks" in case of interactive users or the lock waits and the reading time in case of the batch jobs.
+
+Times of recovery notes
+-----------------------
+If a database has at least one transaction note per sec than we can use their timestamps as the ticking of "transaction clocks" for the notes of all kinds. In other words, time of recovery note can be estimated as timestamp of any previous transaction note. The idea will not work if there are the gaps between the transaction notes. AiScanStat.p uses the more accurate estimation of the timestamps for RL_INMEM note (for checkpoints) - the computation error is approximately 1 sec or less even if the time gaps between transaction notes are the tens seconds. For the rest of the note types the program uses the rough (simple) estimation. Program grepAiScan.p uses the more accurate estimation of the timestamps for all note types. Time estimation is 100% accurate, of course, only for the RL_TBGN/RL_TEND notes.
+
+Transaction idle time
+---------------------
+It's calculated as the sum of time gaps between the notes of the same transaction. Of course, the estimation can be inaccurate because the estimation of the note's timestamps is inaccurate. The idle time can be 90% of duration of large transactions (even for transactions created by the background processes).
+
+Concurrent block updates
+------------------------
+When transaction updates the same block more than once the program compares new and previous update counters in recovery notes (also known as bk_updctr field in block's header). The gaps between the counters are added as the "points" to the competition during block updates. For example, two transactions updated the same block and its update counter was changed as: Tran1 -> updctr 1, Tran2 -> updctr 2, Tran2 -> updctr 3, Tran1 -> updctr 4
+For last update in Tran1 the update counter is 4 compared to 1 for the first update in the same transaction. Hence two "points" will be added to the concurrent block updates in the first transaction. The value can be seen in Dbkeys.txt report. Note that the zero values do not mean the luck of competition but non-zero value is an explicit indicator of the competition during block updates. Concurrent block updates are just an evidence of competition but not its measure.
+
+"Used" sequence increments
+--------------------------
+
+The sequence increments are often used to create an unique ID in the records. For example, the create trigger of the customer table in sports db:
+ASSIGN Customer.CustNum = NEXT-VALUE(NextCustNum).
+In this example we could expect that the RL_SEINC note (a sequence increment) will be immediately followed by RL_RMCR note (create a record) but it's a wrong assumption. RL_SEINC can be followed, for example, by the RL_TMSAVE "system" note (sub-transaction’s save point) or by RL_BK* notes (the changes of RM chain) or by RL_RMDEL notes (remove the obsolete recid locks).
+Let's define RL_SEINC as "linked" to RL_RMCR if RL_SEINC notes just followed by RL_RMCR notes inside the same transaction. Let's define the "sequence path" as the number of the update notes of the same transaction in between RL_SEINC and RL_RMCR notes. The "sequence path" estimates the reliability of the "link". Its value can't be predicted from 4GL code. Let's define the sequence increments as "used" if all RL_RMCR notes for the same dbkey are "linked" to RL_SEINC notes. Note that this condition of is too strong - some RL_RMCR notes can represent the record's fragments rather than the records themselves. You can use viewdbblock.sh script to find a table which records are stored in the blocks. For reporting purposes the program will create the "fake RL_RMCR notes" for dbkeys that "used" the sequence increments. The "used" sequence increments are reported as total per areas and individually per dbkey.
+
+"Flash" updates
+---------------
+It means the same db block was updated the hundreds or thousands times during one or a few seconds by one or a few transactions. For example, the sessions are creating new records in the same table. Progress will allocate space for these records in the first block on RM chain. When the block is full or the number of records reached RPB then the updates will be moved to the next block. It might happen only once per the whole life of block - unlike, for example, to the object blocks that can be updated the millions times during their life but these updates are more or less evenly distributed in time.
+
+"Double flash" updates
+----------------------
+If an application uses the sequences while it creates new records then two db blocks will updated almost at the same time - the sequence block and data block on RM chain. In such cases it's obvious that the contention between the processes can be higher.
+
+"Ultimate flash" updates
+------------------------
+Due to the index compression algorithm an index blocks can store the thousands keys - especially if the key values are very non-unique, especially when the records are created while application does not yet assign new values to all indexed fields. In such case an index block can be updated the thousands times during a few seconds.
+
+"Application inspired flash" updates
+------------------------------------
+Abnormally high number of data block updates can be caused by non-optimal application code.
+For example:
+for first parent where
+ each child of parent:
+ update parent.
+end.
+The same record in parent table is updated (almost) with each record in child table. The number of updates of the same records can be huge.
+
+
+AiScanStat.p creates 8 output files:
+<Prefix>.Files.txt  (STREAM FilesReport)
+<Prefix>.Areas.txt  (STREAM AreasReport)
+<Prefix>.Dbkey.txt  (STREAM DbkeyReport)
+<Prefix>.Trans.txt  (STREAM TransReport)
+<Prefix>.PerSec.txt (STREAM PerSecsReport)
+<Prefix>.Ckpts.txt  (STREAM CkptsReport)
+<Prefix>.Users.txt  (STREAM UsersReport)
+<Prefix>.Notes.txt  (STREAM NotesReport)
+
+
+<Prefix>.Files.txt  (STREAM FilesReport)
+----------------------------------------
+
+Various statistics per AI file - a kind of "table of contents" for other reports.
+
+One row per each AI file.
+
+Columns:
+
+AiScan      - Name of AI scan file;
+Lines       - Line count in AI scan;
+AiNum       - AI sequence number (Seqno);
+BeginTime   - Time of rfutil aimage begin;
+NewTime     - Time of rfutil aimage new;
+OpenTime    - Time of db restart (if/when AI was current);
+LastTime    - Time of last transaction note in AI scan;
+Interval    - AI file interval (between LastTime and NewTime);
+Notes       - Note count in AI scan: "<number> notes were processed. (1634)";
+Notes/sec   - Notes per sec;
+Updates     - "Update" note count;
+%Updates    - Percent to the note count;
+Dbkeys      - Number of db blocks that were updated;
+NoReuse     - Number of blocks updated only once per whole AI interval;
+%NoReuse    - Percent to the note count;
+AveReuse    - Number of updates for blocks with more than one update (when "NoReuse" blocks are excluded);
+Ckpts       - Number of checkpoints during current AI interval;
+AveGap      - Average time gap between transaction notes ("zero gaps" are not included);
+MaxGap      - Maximum time gap between transaction notes;
+%GapTime    - Sum of time gaps as percentage of the AI interval;
+MinTrid     - Minimal transaction ID found in the current AI;
+MaxTrid     - Maximum transaction ID found in the current AI;
+TranStart   - Number of transactions started in AI file: "<number> transactions were started. (1635)";
+Tran/sec    - Number of transactions per sec;
+TranAlloc   - Number of allocated but not active transactions (= MaxTrid - MinTrid - TranStart);
+%TranAlloc  - Percentage of the Trid range (where Trid range = MaxTrid - MinTrid);
+TranAtBgn   - Number of active transactions at beginning of AI file: "<number> in-flight transactions. (3785)";
+TranAtEnd   - Number of active transactions at the end of AI file: "At the end of the .ai file, <number> transactions were still active. (1636);
+OldAtEnd    - Number of old transactions still active at the end - the transactions than begun before the current AI file and not yet committed;
+AveActTran  - Average number of simultaneous transactions;
+MaxActTran  - Maximum number of simultaneous transactions;
+MaxActTranAt -Time when maximum was reached;
+Users       - Number of logins (userid) that created transactions;
+TopUser     - Userid who created the most number of notes;
+%TopNotes   - Note count of TopUser as percentage of the total note count;
+AveTranTime - Average duration of the committed transactions (the ones with RL_TEND note in current AI file);
+MaxTranTime - Maximum duration of the committed transactions;
+AveTranSize - Average note count per committed transactions;
+MaxTranSize - Maximum note count per committed transactions;
+AveSubTrans - Average number of sub-transactions;
+MaxSubTrans - Maximum number of sub-transactions;
+NoteList    - Sorted list of notes per AI file.
+
+Comments:
+
+1. AiScanInfo.p creates the similar report (with the same name by default) - much quicker but with significantly fewer number of columns;
+2. The report can be used to find out the most active period of time in transaction activity;
+3. The "Dbkeys" column could be used, for example, to estimate the size of buffer pool (-B) for roll forward but the tests show that the large -B does not seem to speed up the execution of rfutil;
+4. High number of simultaneous transactions can be a root case of the bottleneck in transaction activity as well as just a side effect of the problems with transaction activity caused by other factors;
+5. For old applications the "%TranAlloc" percentage used to be high (90% or more) but it does not cause the troubles for transaction activity;
+6. The "Users" value is not the number of db connections. It's just the number of unique userid's.
+7. We can use the different methods to estimate the number of sub-transactions. For example, we can count the RL_TMSAVE notes per transaction but it will not work if the client's sessions are using the -nosavepoint parameter. Sometimes we can use RL_LOGOP_START, RL_LOGOP_END as the replacement of RL_TMSAVE. The current version of program uses the maximum count of RL_RM* notes per note type and per area to estimate the number of sub-transactions.
+
+
+<Prefix>.Areas.txt  (STREAM AreasReport)
+----------------------------------------
+
+Update note statistics per areas.
+
+One row per area and per AI file. Plus one row for summary per AI file.
+
+AiScan    - Name of AI scan file
+AiNum     - AI sequence number (Seqno)
+NewTime   - Time of rfutil aimage new
+Interval  - AI file interval
+Area      - Area number
+AreaInfo  - Area info from .st file
+MinDbkey  - Minimum dbkey of updated blocks
+MaxDbkey  - Maximum dbkey of updated blocks
+X         - Area is extended (RL_XTDB) => MaxDbkey eq HWM
+AveDbkey  - Average dbkey of updated blocks
+DevDbkey  - Standard deviation of the dbkeys
+%DevDbkey - Percentage of the maximum dbkey
+Updates   - Count of the "update" notes per area
+%Updates  - Percentage of the "update" notes per AI file
+Dbkeys    - Count of unique dbkeys
+NoReuse   - Count of dbkeys that were updated only once
+%NoReuse  - Percentage of the count of unique dbkeys
+AveReuse  - Average number of updates per "reusable" dbkeys
+Trans     - Number of transactions updated the area
+%Trans    - Percentage of the total number of transactions
+UsedSeqs  - Count of the "used" sequence increments
+NoteList  - List of notes per area
+
+Comments:
+
+1. The report shows what areas contribute to transaction activity the most - see the "%Updates" column;
+2. The report deals only with the "update" notes because the "system" notes aren't linked to the areas. One exception - the "%Updates" column in "total" row is a percentage of the update notes in all areas to all notes in AI file (it’s not the total sum of the "%Updates" column per area);
+3. The areas marked by "X" column were extended during AI interval. In this case MaxDbkey is guaranteed to be the area's HWN at the end of AI interval;
+4. The "%DevDbkey" column shows what part of the area was updated the most. Note that even if the records only created in an area it does not mean that all updates will happen only in the blocks resided close to the area’s HWM;
+5. The "%Trans" column measures the contribution of area to the transaction activity in terms of transaction counts.
+6. The "UsedSeqs" column shows how often the sequence increments were used to create the records in the given area;
+7. The "NoteList" column reports the list of note types per area and is sorted by note count descending. The list may contain the RL_SEINC notes even for the areas other than "Schema Area". It's the fake notes created for the cases when the RL_SEINC note (from "Schema Area") is "linked" to the RL_RMCR note in the given area. The number of the "linked" (a.k.a. "fake") RL_SEINC notes can be higher than the number of the "used" sequence increments reported by the "UsedSeqs" column;
+8. If you had loaded the area's information from .st file then the report can contain the rows for the areas that do not participate in transaction activity.
+
+
+<Prefix>.Dbkey.txt  (STREAM DbkeyReport)
+----------------------------------------
+
+Update statistics per database block.
+
+One row per block. The report can contain the huge number of the rows. Note that Excel cannot open a file with more the a million rows. To limit the size of report you can change the value of vDbkeyUpdLimit in the program. It's a minimum number of block's update to report. Default value of vDbkeyUpdLimit (= 10) seems to be enough for the most cases. Newborn dbkeys (the ones with FirstUpdCtr equal 1) will be reported anyway - it's my whimsy. ;-)
+
+AiScan      - Name of AI scan file
+AiNum       - AI sequence number (Seqno)
+NewTime     - Time of rfutil aimage new
+AiIntrvl    - AI file interval
+Area        - Area number
+AreaInfo    - Area info from .st file
+Dbkey       - Dbkey from transaction's notes
+T           - Block type: "S"equence, "D"ata, "I"ndex or "O"ther
+FirstUpdCtr - Update counter in the first note of dbkey
+LastUpdCtr  - Update counter in the last note of dbkey
+FirstTime   - Time of the first dbkey note
+UpdIntrvl   - Interval between the first and last dbkey notes
+Updates     - Number of dbkey updates
+Upd/sec     - Updates per second
+ConcUpd     - Concurrent block updates (a.k.a. competition)
+Trans       - Number of transactions that updated dbkey
+Trid        - Example of transaction that updated dbkey
+NoteList    - Sorted list of the notes that update dbkey
+
+Comments:
+
+1. It's recommended to open the report in Excel and to sort data by values in the "Upd/sec" column (Largest to Smallest);
+2. The competition during dbkey updates can be estimated by "Trans" column as well as by "ConcUpd" column;
+3. Compare the values of "Updates" and "LastUpdCtr" columns. "Flash" updates of the blocks used to happen only once per block's life - in this case the values in these columns will be of the same order. The object blocks can be updated the huge number of times ("LastUpdCtr" can be the millions) but they are updated more or less evenly over the time ("Upd/sec" value should be small);
+4. Block type is identified by the note types for the given dbkey;
+5. The list of notes can contain the fake "RL_SEINC" notes if the sequence increments were "linked" to the RL_RMCR notes for the given dbkey.
+6. The "Trid" column reports the ID of transaction that made the most of dbkey's updates. It can be used as an example to narrow down the code that created these updates. Check this transaction in Trans.txt report or use grepAiScan.p to get the full history of the transaction;
+7. Database object(s) that resided in the given dbkey can be found in block's dump. Use the viewdbblock.sh script to dump the block:
+ftp://ftp.progress-tech.ru/pub/Users/george/emon/fragments/viewdbblock.sh
+Database can be online or offline. You can use any copy of database provided it contains the changes from AI files you processed.
+
+
+<Prefix>.Trans.txt  (STREAM TransReport)
+----------------------------------------
+
+Basic statistics for individual transactions.
+
+One row per transaction. The report can contain the huge number of the rows. To limit the size of report you can change the value of vTranTimeLimit and vTranNoteLimit variables. They set the limits for transaction duration and note count per transaction to include a transaction in the report.
+
+Trid       - Transaction ID
+Userid     - User's ID
+AiNum      - AI sequence number (Seqno)
+BegTime    - Time when the transaction became active (RL_TBGN)
+EndTime    - Time when the transaction was committed (RL_TEND)
+Len        - Transaction duration in seconds (= EndTime - BgnTime)
+Idle       - Total idle time during transaction
+%Idle      - Percentage of the transaction's duration
+MaxGap     - Maximum continuous interval with no transaction activity
+GapCount   - The number of idle intervals (gaps) during transaction
+SeqIncr    - Number of sequence increments during transaction
+SeqUsed    - Number of the "used" sequence increments
+AveSeqPath - Average "sequence path" (from RL_SEINC to RL_RMCR)
+MaxSeqPath - Maximum length of "sequence path"
+Updates    - Number of "update" notes per transaction
+%Updates   - Percentage of the number of notes per transaction
+Notes      - Number of notes per transaction
+SubTrans   - Number of sub-transactions
+Notes/Sub  - Average number of notes per sub-transaction
+NoteList   - Sorted list of the notes per transaction
+
+Comments:
+
+1. Transaction statistics is reported when transaction is committed or when last AI file is processed;
+2. AiNum is the sequence number of AI file that contains the first notes of the given transaction. It can help to minimize the number of AI file to scan when you need to get the full transaction history – especially when transaction begun and committed outside the processed set of AI files;
+3. Idle time is the sum of time gaps between transaction's notes. See the "MaxGap" and "GapCount" columns. Average gap time = "Idle" / "GapCount";
+4. You can ignore the "AveSeqPath" and "MaxSeqPath" columns. This is a kind of debugging information to estimate the reliability of the "used sequence increments" term;
+5. Sub-transactions: see the comments to the Files.txt report;
+6. The "NoteList" in this report has a bit different format than in other reports. It's presented in the form:
+(Note1:Area1*Fact1,...)*SubTrans,NoteM:AreaM*CountM,...,NoteN:AreaN*CountN
+where
+Fact1 = Count1 / SubTrans is a decimal with vNoteListDigit decimals.
+NoteThold = SubTrans * vNoteListThold is threshold for note counts outside the brackets.
+NoteThold >= CountM >= ... CountN
+In other words the notes that can be generated by sub-transactions are bracketed. Instead of note counts you'll see their ratio to the number of sub-transactions. The notes with the small counts will form a second list after the brackets.
+Such presentation makes it's easy to identify the "similar" transactions. Hint: in Excel add new column (let's say "TranType"), sort the report by "NoteList" column and for the range of rows with the similar values in the brackets of "NoteList" add the unique ID in the "TranType" column.
+
+
+<Prefix>.PerSec.txt (STREAM PerSecReport)
+-----------------------------------------
+
+Basic transaction statistics per second interval.
+
+One row per each second in AI scans.
+
+AiNum     - AI sequence number (Seqno)
+Date      - Date of transaction notes
+Time      - Time of transaction notes
+Intr      - Interval (1 second or time gap between transaction notes)
+Notes     - Note count during the specified time interval
+Updates   - Update notes count during the specified time interval
+TranBgn   - RL_TBGN note count during the specified time interval
+TranEnd   - RL_TEND note count during the specified time interval
+MinTran   - Minimum number of simultaneous transactions
+MaxTran   - Maximum number of simultaneous transactions
+Event     - Db events during interval (if any)
+
+Comments:
+
+1. If you scanned AI files for 24 hour interval then the report will contain 86400 rows. It would be easy to review data if you convert them in to the graphics in Excel. For these purposes the data and time values are separated in two different columns.
+2. The value in "Intr" column is equal 1 or a gap between transaction's notes;
+3. There are a few database events that can be identified from AI scans: AI switches, db restarts, the checkpoints. If any of these events happened during the specified time interval they will be mentioned in the "Event" column.
+
+
+<Prefix>.Ckpts.txt  (STREAM CkptsReport)
+----------------------------------------
+
+Basic transaction statistics per interval between checkpoints.
+
+One row per checkpoint.
+
+AiScan    - Name of AI scan file
+AiNum     - AI sequence number (Seqno)
+CkptId    - Checkpoint's ID inside the current AI file
+CkptTime  - Checkpoint starting time
+Delta     - Estimated accuracy of checkpoint time
+Interval  - Time interval between checkpoints
+Notes     - Total number of notes created between checkpoints
+Notes/sec - Notes per sec
+Updates   - The number of "update" notes created between checkpoints
+%Updates  - Percentage of the total notes count
+Trans     - The number of transactions started between checkpoints
+
+Comments:
+
+1. Checkpoints are identified by the RL_INMEM notes.
+2. Transaction statistics for first checkpoint in first AI file is incomplete because it was accumulated from the beginning of AI file rather than from the previous checkpoint;
+3. The number of notes for full checkpoint interval is related to the BI cluster size and it should remain more or less the same over time. But sometimes the average note size is changing with time – this would mean that a type of the dominant transactions was changed.
+
+
+<Prefix>.Users.txt  (STREAM UsersReport)
+----------------------------------------
+
+Basic transaction statistics per userid.
+
+One row per userid and per AI file plus one row per userid for total by all AI files (if more than one AI scan was processed).
+
+AiScan    - Name of AI scan file
+AiNum     - AI sequence number (Seqno)
+AiIntr    - AI file interval
+Userid    - Username
+FirstTime - First time of user's activity inside AI file
+LastTime  - Last time of user's  activity inside AI file
+UserTime  - Interval of user's activity (= LastTime - FirstTime)
+%UserTime - Percentage of the AI interval
+TranTime  - Total duration of user's transactions
+%TranTime - Percentage of AI interval (can be great than 100%)
+IdleTime  - Total idle times of user's transactions
+%IdleTime - Percentage of TranTime (can be great than 100%)
+Trans     - Number of commits inside the current AI file
+%Trans    - Percentage of the total number of commits in AI
+Notes     - Total number of notes in the user's transactions
+%Notes    - Percentage of the total note count per all users
+AveTime   - Average duration of transactions committed in AI
+MaxTime   - Maximum duration of transactions committed in AI
+AveNotes  - Average note count per committed transaction
+MaxNotes  - Maximum note count per committed transaction
+
+Comments:
+
+1. User can open a transaction before the current AI file. In this case the value in "TranTime" will include transaction time only since beginning of the current AI file.
+2. The different sessions can simultaniously create the transactions under the same userid. Their total transaction time can exceed the AI interval. So the "%TranTime" can be higher than 100%;
+3. The "Trans" and "Notes" columns report the transction activity created by the given userid only during the given AI file;
+4. "AveTime", "MaxTime", "AveNotes" and "MaxNotes" columns report the statistics for transactions created the given userid and committed in the given AI file. For example, "MaxTime" (longest transaction duration) can be higher than the current AI interval.
+
+
+<Prefix>.Notes.txt  (STREAM NotesReport)
+----------------------------------------
+
+Note counts.
+
+One row per note type, per area and per AI file. Plus one row per note type and per AI file for total by all AI areas.
+
+AiScan    - Name of AI scan file
+AiNum     - AI sequence number (Seqno)
+NewTime   - Time of rfutil aimage new
+Interval  - AI file interval
+Area      - Area number
+AreaInfo  - Area info from .st file
+Type      - Note type: RL_*
+Count     - Note count
+
+Comments:
+
+The same information exists in Areas.txt report in the "NoteList" column.
+
+

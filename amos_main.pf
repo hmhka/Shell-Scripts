@@ -1,0 +1,38 @@
+# Common RealServicing Parameter File
+#
+#AMOS Param
+-S amos_db
+-B 15073280 ##115GB
+-B2 1310720  ##10GB from 9GB on 7/aug/2014
+-spin 60000
+-L 200000
+-aiarcdir /emc/reale/ai_archive/amosarc/
+-DBService replserv
+#Common to All Databases
+-N tcp
+-n 8932
+-Ma 6
+-Mn 1487
+-Mi 3
+-Mpb 1085
+-semsets 90 
+-aibufs 150
+-bibufs 150
+-basetable 1
+-tablerangesize 600
+-baseindex 1
+-indexrangesize 2000
+-Mm 8192
+-pica 150000
+#Above 1990 to avoid Cisco on port 1990
+-minport 12501		#13-oct-2013 As per the dan forman suggestion we changing 
+-maxport 14500		#13-oct-2013 As per the dan forman suggestion we changing
+-PendConnTime 10
+-aistall
+-bistall
+-pinshm          #parameter to prevent the database engine from swapping shared memory contents to disk
+-omsize 2300
+-maxAreas 200
+-napmax 300
+-lruskips 100 
+-lru2skips 100

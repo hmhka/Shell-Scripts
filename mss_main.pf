@@ -1,0 +1,38 @@
+# Common RealServicing Parameter File
+#
+#MSS Param
+-S mss_db
+-B 15073280 ##115GB
+-B2 2490368  ##19GB from 18GB on 7/aug/2014
+-spin 100000
+-L 200000
+-aiarcdir /emc/reale/archive/mssarc/
+-DBService replserv
+#Common to All Databases
+-N tcp
+-n 8932
+-Ma 6
+-Mn 1487
+-Mi 3
+-Mpb 1085
+-semsets 90
+-aibufs 150
+-bibufs 150
+-basetable 1
+-tablerangesize 450 
+-baseindex 1
+-indexrangesize 1800
+-Mm 8192
+-pica 150000
+#Above 1990 to avoid Cisco on port 1990
+-minport 22501          #01-Jan-2014 changing the range to resovle admin issue.
+-maxport 24500          #01-Jan-2014 changing the range to resovle admin issue
+-PendConnTime 10
+-aistall
+-bistall
+-pinshm
+-omsize 2048
+-maxAreas 200
+-napmax 300
+-lruskips 100
+-lru2skips 100

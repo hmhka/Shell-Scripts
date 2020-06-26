@@ -1,0 +1,121 @@
+dbmon.sh script version 3 is now available
+https://community.progress.com/community_groups/openedge_rdbms/f/18/t/25700
+Posted on 23 Jun 2016
+
+There are many tools to monitor Progress databases: Protop, OE Management, ProMonitor, Promon gather script [1].
+
+The dbmon.sh script is one of them. It starts promon session and goes through its menu to gather almost [2] all possible information and repeats all steps by the specified number of the sampling intervals. The first version of the dbmon.sh script was written many yeas ago and our customers were using it to gather the database statistics per the whole day (usually with 10-30 min sampling intervals) as well as during the incidents (like a sudden performance degradation) using the short sampling intervals.
+
+New in dbmon.sh Version 3:
+
+1. If you do not specify the list of databases (really the masks for the paths to the databases) then the dbmon.sh will gather information for all running databases that use the Progress version specified by the DLC environment variable [3].
+
+2. dbmon.sh prepares the databases for monitoring:
+2.1 dbmon.sh puts ACO blocks [4] into DAABP [5]. It will protect promon from the contention of LRU latch;
+2.2 dbmon.sh finds a directory with the "drwxrwxrw" permissions and sets it in promon as "Directory for Statement Cache Files". It will protect 4GL sessions against the hangs on STCA lock [6].
+
+3. dbmon.sh launches three "roasting" promon sessions: "rare", "medium" and "well done":
+3.1 Main promon session gathers the most part of information in promon using the basic sampling interval [7];
+3.2 Status promon session gathers "Blocked Clients", "Buffer Lock Queue" and "Active Transactions" [8] using 10 sec intervals or the basic sampling interval whatever is smaller;
+3.3. Latch promon session uses "Activity: Latch Counts" menu to gather the current owners of the latches. The session checks information once per second. If it will catch a latch's owner then the script will also reports the latch locks and naps for the last one sec interval [9].
+
+4. dbmon.sh launches a 4GL procedure (dbmon.p) that collects the _TabStat/_IndexStat statistics, selects the most active sessions, collects the _UserTabStat/_UserIndexStat statistics for these sessions as well as uses the statement cache to get the procedures they are running at this moment.
+
+5. dbmon.sh gathers other miscellaneous information.
+
+6. At the end all logs will be automatically archived and the archive will be sent to the recipients if you specified their emails.
+
+There is another side of dbmon.sh when it will use its SWAT skills. If "civilians" can not connect a database then dbmon.sh script will still try to do it or at least it will collect some useful information:
+The dbmon.sh script recognize the following situations:
+a. Database is starting (a long crash recovery);
+b. Database is shutting down (shutdown is already initiated);
+c. Sessions can't connect a database due to a login semaphore/USR latch lock;
+d. Sessions hang immediately after db connection (most likely the LRU latch is locked);
+e. Too many users connected to a database (error 5291).
+
+In the cases "c" and "e" the dbmon.sh will try to run promon for a given database.
+In the cases "c" and "d" the script will create a protrace file for a probe connection session that was used as a first step before starting the real monitoring processes.
+In all cases the script will monitor what is going on in a database on file level. It will report the changes of db extent timestamps, the changes of their sizes and the changes in the .lk file.
+You can enable monitoring on the file level for "normal" databases as well. Use the -filemon option. I don't thinks it will add anything useful to the information collected by regular promon but at least you can test the file level monitoring before you might need it.
+
+Also you can start the dbmon.sh script with the -protrace option with the following values:
+-protrace enable - It allows for the script to create the protrace files for all processes that are using a database that can not be connected;
+-protrace all - It tells to the script to create the protrace files for all processes running against all databases that were selected for monitoring;
+-protrace dbname - It tells to the script to create the protrace files only for the processes that are running against the specified database.
+
+In all these case the script will the lsof command to get the list of the processes that are connected to a databases. If the lsof is not available then the script will parse the output of "ps -ef" command.
+
+If OS allows [10] to get the working directories of the running processes then the script will move the protrace files to its own working directory, will rename them by adding db name and the name of the executable and finally will add the protrace files to an archive.
+
+Use the -help option to get information how to use the dbmon.sh script.
+
+Default parameters: all running databases, 4 sec sampling interval, 5 intervals - total monitoring duration is 20 sec.
+
+In case of any "strange" situation with your database just run the script with the default parameters and it will capture all data that might be needed to analyze the situation. 
+
+Also the dbmon.sh script can be run by cron - for example, run it every day for 24 hours with 10 min sampling interval.
+
+The script is almost insensitive to the version of Progress. The script was tested with versions from 10.2B to 11.6 (and a bit higher ;-). If you are using the older versions then you just will not get the information that is available in recent ones. For Progress version before 10.2A SP01 you need to change a probe connection procedure. Instead of promon session you need to use a 4GL session. Just uncomment the corresponding code inside the script. The script was tested with Progress V10.1C.
+
+The dbmon.sh script was tested on Linux, Solaris, HP-UX and AIX. If it does not run well on your Unix flavor then send me the errors and I'll try to fix the issue.
+
+Main promon session creates a large log with the various information. You can "split" the log per promon's menus. Use dbmonSplit.p procedure.
+
+Sasha Kraljevic has written 8 years ago the programs to parse the promon's output and load data into a database. I do not use them (I prefer to use the "slide show" after dbmonSplit.p) but they are still available.
+
+The script dbmon.sh and the programs can be downloaded here:
+ftp://ftp.progress-tech.ru/pub/Users/george/Scripts/dbmon/
+
+Notes:
+[1] Promon gather script (gather.sh) - see Article: Script for gathering database information on Unix.
+    http://knowledgebase.progress.com/articles/Article/000010526
+[2] dbmon.sh skips some promon's menu. For example, it skips "Status: Lock Table" because an application can create a huge number of record locks. Saving this information would be time consuming and the logs would be very large. But you can easy uncomment the corresponding menu inside the script.
+[3] If you run dbmon.sh when DLC is not set then it will automatically locate a Progress directory provided all running databases are using the same Progress version.
+[4] ACO blocks - Area Control Object blocks (bk_type 12 & objectId 0). Their contents is used, for example, by prostrct statistics.
+[5] DAABP = Dynamically Allocated Alternate Buffer Pool(s) - an undocumented but supported (me think ;-) feature that is available since 10.2B SP06.
+[6] Setting a directory for Statement Cache Files with the right permissions will protect your database against the bug OE00237502 / PSC00258643.
+    See kbase http://knowledgebase.progress.com/articles/Article/000040544
+[7] Unfortunately I'm forced to use the promon's rule and the sampling interval is rounded to an even number. Hence it's not possible to use one sec interval.
+[8] If the total monitoring duration is longer than 5 min then "Active Transactions" will be gathered by main promon.
+[9] Latch locks and naps are not the direct indicators of latch's busyness. A better indicator is how often you can see an owner of latch compared to the number of attempts (= the number of sampling intervals).
+[10] For example, HP-UX does not have a command to get the current working directory of the running processes but you can find a solution:
+     http://community.hpe.com/t5/Languages-and-Scripting/current-working-directory-of-process/td-p/5093802
+     The script will search for the "pwdx" command.
+
+
+
+dblog.sh - a shell script to parse the messages in db log files
+https://community.progress.com/community_groups/openedge_rdbms/f/18/t/25701
+Posted on 23 Jun 2016
+
+dblog is shell script to parse the messages in db log files. Its core function (LogParser) was written fro new version of dbmon script but it can be used separately. We have the customers that create almost 1GB of db logs per day. The goal is to convert this huge volume to something much more compact to be able to review the logs but on other hands "I don't want to miss a thing".
+
+With dblog you can parse the whole db log:
+dblog.sh dbname.lg [options]
+
+Or you can parse only the recent messages in db log:
+tail -1000000 dbname.lg | dblog.sh dbname.lg [options]
+
+Available options:
+
+
+-f Show the fatal errors (marked as "F" in Progress log files). In fact they are "fatal" for a process that issues the error but also they can be fatal for the whole database. It's the messages that begin with %g or %G tags in the promsgs file where "G" is for "Gronk", not for "George" (I hope ;-).
+
+-e Show the system errors (the messages with words "SYSTEM ERROR:"). This group includes some fatal errors as well.
+
+-r Show the "remained" messages - all messages except the ones that belong to "Logins", "Params" and "Ignore" groups. The script explicitly define the list of "Logins" group (any messages that somehow related to logins/logouts) and the list of "Ignore" group (all messages that can be skipped while parsing a log). The group of the "remained" messages includes the errors/warning of any kind.
+
+-p Show the startup parameters of Progress multi-user sessions ("Params" group). This group is defined implicitly.
+
+-s Summary: the number of messages per message numbers (and per messages without numbers). You will get the counts of the messages from all groups including the "Ignore" group.
+
+-l Report the statistics for the messages in the "Logins" group. How often the messages from "Logins" group where issued per a specified interval. Database logs store some indirect performance indicators. The -l option can reveal them.
+
+A bonus:
+dblog.sh -n <Num> will show the description of the message with the specified number.
+
+Frequently asked question: What is the script waiting for if I run it without any parameters.
+The answer: It waits for the messages from the sdtin stream. As the "cat" command will do.
+
+The most recent version of the script can be downloaded here:
+ftp://ftp.progress-tech.ru/pub/Users/george/Scripts/dblog.sh

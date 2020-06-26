@@ -1,0 +1,68 @@
+ADD TABLE "RecCopy"
+  AREA "ReCopy Area"
+  DUMP-NAME "reccopy"
+
+ADD FIELD "ProcessId" OF "RecCopy" AS integer 
+  DESCRIPTION "PID of defragmentation session"
+  FORMAT ">>>>>>>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 10
+
+ADD FIELD "StatusId" OF "RecCopy" AS integer 
+  DESCRIPTION "0 = Not in use (but was used in past);
+1 = Store only recid of a fragmented record;
+2 = Store a fragmented record that was deleted from a source db;
+3 = Keep a record copy until the problem is fixed."
+  FORMAT "9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 20
+
+ADD FIELD "TransTime" OF "RecCopy" AS datetime-tz 
+  DESCRIPTION "Time when a record copy was re-created in a source database."
+  FORMAT "99/99/9999 HH:MM:SS.SSS+HH:MM"
+  INITIAL ?
+  MAX-WIDTH 12
+  ORDER 30
+
+ADD FIELD "TableNumber" OF "RecCopy" AS integer 
+  DESCRIPTION "_File._File-Number"
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 40
+
+ADD FIELD "OldRecid" OF "RecCopy" AS recid 
+  DESCRIPTION "RECID before defragmentation"
+  FORMAT ">>>>>>9"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 50
+
+ADD FIELD "NewRecid" OF "RecCopy" AS recid 
+  DESCRIPTION "RECID after defragmentation"
+  FORMAT ">>>>>>9"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 60
+
+ADD FIELD "RawRecord" OF "RecCopy" AS raw 
+  DESCRIPTION "RAW-TRANSWER(fragmented record)"
+  FORMAT "x(8)"
+  INITIAL ""
+  MAX-WIDTH 16
+  ORDER 70
+
+ADD INDEX "StatusId" ON "RecCopy" 
+  AREA "ReCopy Area"
+  PRIMARY
+  INDEX-FIELD "ProcessId" ASCENDING 
+  INDEX-FIELD "StatusId" ASCENDING 
+  INDEX-FIELD "TransTime" ASCENDING 
+
+.
+PSC
+cpstream=undefined
+.
+0000001558

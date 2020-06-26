@@ -1,0 +1,43 @@
+##############################################################
+# Script Name: /avg/bin/controlm/log_trunc.sh
+# Purpose: This script takes the backup and then Truncates the Orion DB logs to /probackup/avg/logs on MINERVA server for arcsight project
+# version: 1.0
+##############################################################
+DBPATH1=/pro/admin/gall/prd/cosmos
+DBPATH2=/pro/admin/gall/prd/multistore
+DBPATH3=/pro/admin/gall/prd/pakket
+DBPATH4=/pro/admin/gall/prd/spaces
+now=$(date +"%Y_%m_%d")
+prev=$(TZ=GMT+24 date +%Y:%m:%d)
+scriptlog=/pro/admin/bin/Orion_Truncation.log
+bkplog=/pro/admin/gall/prd/bkup_logs
+ls -ltr $DBPATH1/*.db > dblist.txt
+ls -ltr $DBPATH2/*.db >> dblist.txt
+ls -ltr $DBPATH3/*.db >> dblist.txt
+ls -ltr $DBPATH4/*.db >> dblist.txt
+rm $scriptlog
+awk '{print $9;}' dblist.txt | cut -d'.' -f1 > list.txt
+echo "=====================================================" > $scriptlog
+echo "Starting Copy and Truncation of Orion DB logs for arcsight at `date`" >> $scriptlog
+file=list.txt
+while IFS= read -r line
+do
+cp $line.lg /pro/admin/gall/prd/bkup_logs
+cp $line.lg /pro/admin/gall/prd/db_logs
+prolog $line -online >> $scriptlog
+echo "Log File for $line.db has been truncated successfully at `date`" >> $scriptlog
+done < "$file"
+echo "Completed Copy and Truncation of Orion DB logs for arcsight at `date`" >> $scriptlog
+echo "=====================================================" >> $scriptlog
+ls -ltr $bkplog/*.lg > loglist.txt
+awk '{print $9;}' loglist.txt > list1.txt
+file1=list1.txt
+while IFS= read -r line
+do
+mv $line $line.$now
+done < "$file1"
+rm loglist.txt
+rm list1.txt
+rm dblist.txt
+rm list.txt
+

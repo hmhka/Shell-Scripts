@@ -1,0 +1,1419 @@
+ADD SEQUENCE "ChainUID"
+  INITIAL 0
+  INCREMENT 1
+  CYCLE-ON-LIMIT no
+
+ADD TABLE "AreaStat"
+  AREA "Main Table Area"
+  DESCRIPTION "Statistics per area as well as area information loaded from a structure (.st) file or from data definition (.df) file or from the output of ObjectInfo.p program (the preferred option)."
+  DUMP-NAME "areastat"
+
+ADD FIELD "StatId" OF "AreaStat" AS integer 
+  FORMAT ">>>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 10
+
+ADD FIELD "AreaNumber" OF "AreaStat" AS integer 
+  FORMAT ">>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 20
+
+ADD FIELD "AreaName" OF "AreaStat" AS character 
+  FORMAT "x(32)"
+  INITIAL ""
+  MAX-WIDTH 64
+  ORDER 30
+
+ADD FIELD "ClusterSize" OF "AreaStat" AS integer 
+  FORMAT ">>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 50
+
+ADD FIELD "TotalBlocks" OF "AreaStat" AS int64 
+  DESCRIPTION "msg #10130: <num> block(s) found in the area."
+  FORMAT ">>,>>>,>>>,>>9"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 110
+
+ADD FIELD "HighBlock" OF "AreaStat" AS int64 
+  DESCRIPTION "msg #14181: Current high water mark: <num>"
+  FORMAT ">>,>>>,>>>,>>9"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 120
+
+ADD FIELD "DataBlocks" OF "AreaStat" AS int64 
+  DESCRIPTION "bk_type: 3 (Data Block)
+msg  #3921: <num> RM block(s) found in the database.
+msg #14183: <num> record block(s) found in the area"
+  FORMAT ">>,>>>,>>>,>>9"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 130
+
+ADD FIELD "IndexBlocks" OF "AreaStat" AS int64 
+  DESCRIPTION "bk_type: 2 (Index Block)
+msg  #3923: <num> index block(s) found in the database.
+msg #14184: <num> index block(s) found in the area"
+  FORMAT ">>,>>>,>>>,>>9"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 140
+
+ADD FIELD "FreeBlocks" OF "AreaStat" AS int64 
+  DESCRIPTION "bk_type: 4 (Free Block)
+msg  #3930: <num> free block(s) found in the database.
+msg #14182: <num> free block(s) found in the area"
+  FORMAT ">>,>>>,>>>,>>9"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 150
+
+ADD FIELD "EmptyBlocks" OF "AreaStat" AS int64 
+  DESCRIPTION "bk_type: 7 (Empty Block)
+msg  #3933: <num> empty block(s) found in the database.
+msg #14185: <num> empty block(s) found in the area"
+  FORMAT ">>,>>>,>>>,>>9"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 160
+
+ADD FIELD "ObjectBlocks" OF "AreaStat" AS int64 
+  DESCRIPTION "bk_type: 12 (Object Block)
+msg  #6710: <num> object block(s) found in the database. (of Master object 0)
+msg #14186: <num> object block(s) found in the area
+msg #14199: <num> object block(s) found in the database."
+  FORMAT ">>,>>9"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 170
+
+ADD FIELD "ObjectListBlocks" OF "AreaStat" AS int64 
+  DESCRIPTION "bk_type: 14 (Area Object List Block)
+msg #14188: <num> object list block(s) found in the area
+msg #14200: <num> object list block(s) found in the database."
+  FORMAT ">>,>>9"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 180
+
+ADD FIELD "NumTables" OF "AreaStat" AS integer 
+  FORMAT ">>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 80
+
+ADD FIELD "NumIndexes" OF "AreaStat" AS integer 
+  FORMAT ">>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 90
+
+ADD FIELD "NumLobs" OF "AreaStat" AS integer 
+  FORMAT ">>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 100
+
+ADD FIELD "BgnTime" OF "AreaStat" AS datetime 
+  DESCRIPTION "msg #14179: CHAIN ANALYSIS FOR AREA"
+  FORMAT "99/99/9999 HH:MM:SS.SSS"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 190
+
+ADD FIELD "RecPerBlock" OF "AreaStat" AS integer 
+  DESCRIPTION "PPB for area can be identified from LIST OF FREE CHAIN BLOCKS of Master object 0. Available only if chanalys was run as a separate option."
+  FORMAT ">>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 40
+
+ADD FIELD "RunInterval" OF "AreaStat" AS decimal 
+  FORMAT ">>>,>>>,>>9.999"
+  INITIAL ?
+  MAX-WIDTH 17
+  DECIMALS 3
+  ORDER 210
+
+ADD FIELD "SchemaMD5" OF "AreaStat" AS raw 
+  FORMAT "x(16)"
+  INITIAL ""
+  MAX-WIDTH 32
+  ORDER 240
+
+ADD FIELD "AreaAttrib" OF "AreaStat" AS character 
+  DESCRIPTION "Source: _Area._Area-attrib"
+  FORMAT "x(8)"
+  INITIAL ""
+  MAX-WIDTH 16
+  ORDER 60
+
+ADD FIELD "AltBufferPool" OF "AreaStat" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  MAX-WIDTH 1
+  ORDER 70
+
+ADD FIELD "EndTime" OF "AreaStat" AS datetime 
+  DESCRIPTION "msg #10130: <num> block(s) found in the area."
+  FORMAT "99/99/9999 HH:MM:SS.SSS"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 200
+
+ADD FIELD "PhaseName" OF "AreaStat" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  MAX-WIDTH 144
+  EXTENT 8
+  ORDER 220
+
+ADD FIELD "PhaseTime" OF "AreaStat" AS datetime 
+  FORMAT "99/99/9999 HH:MM:SS"
+  INITIAL ?
+  MAX-WIDTH 80
+  EXTENT 8
+  ORDER 230
+
+ADD INDEX "AreaNumber" ON "AreaStat" 
+  AREA "Main Index Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "AreaNumber" ASCENDING 
+
+ADD INDEX "AreaName" ON "AreaStat" 
+  AREA "Main Index Area"
+  UNIQUE
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "AreaName" ASCENDING 
+
+ADD TABLE "ChainBlock"
+  AREA "ChainBlock Table Area"
+  DESCRIPTION "List of chain blocks reported by chanalys or list of index blocks reported by idxblockreport"
+  DUMP-NAME "chainblock"
+
+ADD FIELD "BlockDbkey" OF "ChainBlock" AS int64 
+  FORMAT ">>>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 40
+
+ADD FIELD "BlockSpace" OF "ChainBlock" AS integer 
+  DESCRIPTION "Free space for data blocks on RM chain;
+Length of Entries (the used space) for index blocks reported by idxblockreport;
+Unknown value for the blocks on Free Chain or on Index Delete Chain."
+  FORMAT ">,>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 50
+
+ADD FIELD "BlockAttr1" OF "ChainBlock" AS integer 
+  DESCRIPTION "1) The number of recid locks (""hold"") for data blocks on RM Chain;
+2) Index level for index blocks reported by idxblockreport."
+  FORMAT ">>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 70
+
+ADD FIELD "BlockAttr2" OF "ChainBlock" AS integer 
+  DESCRIPTION "Fon index blocks reported by idxblockreport:
+0 = root
+1 = nonLeaf
+2 = leaf
+"
+  FORMAT ">>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 80
+
+ADD FIELD "BlockOrder" OF "ChainBlock" AS int64 
+  DESCRIPTION "Block's sequential number in the chain list."
+  FORMAT ">>>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 30
+
+ADD FIELD "BlockEntries" OF "ChainBlock" AS integer 
+  DESCRIPTION "The number of the free slots (""# free slots"" or ""freedir"") for data blocks on RM Chain;
+Number of Entries (""ih_nment"") for index blocks reported by idxblockreport;
+Unknown value for blocks on Free Chain or on Index Delete Chain."
+  FORMAT ">>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 60
+
+ADD FIELD "StatId" OF "ChainBlock" AS integer 
+  FORMAT ">>>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 10
+
+ADD FIELD "ChainOrder" OF "ChainBlock" AS integer 
+  DESCRIPTION """Dog-nail"" for V11: the sequential number of ""LIST OF * CHAIN BLOCKS"""
+  FORMAT ">>>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 20
+
+ADD INDEX "BlockOrder" ON "ChainBlock" 
+  AREA "ChainBlock Index Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "ChainOrder" ASCENDING 
+  INDEX-FIELD "BlockOrder" ASCENDING 
+
+ADD INDEX "BlockDbkey" ON "ChainBlock" 
+  AREA "ChainBlock Index Area"
+  UNIQUE
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "ChainOrder" ASCENDING 
+  INDEX-FIELD "BlockDbkey" ASCENDING 
+
+ADD TABLE "ChainStat"
+  AREA "Main Table Area"
+  DESCRIPTION "Block statistics per chain reported by CHAIN ANALYSIS phase of chanalys or dbanalys"
+  DUMP-NAME "chainstat"
+
+ADD FIELD "StatId" OF "ChainStat" AS integer 
+  FORMAT ">>>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 10
+
+ADD FIELD "AreaNumber" OF "ChainStat" AS integer 
+  FORMAT ">>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 20
+
+ADD FIELD "ObjectNumber" OF "ChainStat" AS integer 
+  FORMAT "->>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 30
+
+ADD FIELD "ChainType" OF "ChainStat" AS character 
+  DESCRIPTION "free chain (FREECHN), RM chain (RMCHN), Index Delete chain (LOCKCHN) or free cluster chain."
+  FORMAT "x(18)"
+  INITIAL ?
+  MAX-WIDTH 14
+  ORDER 70
+
+ADD FIELD "ObjectType" OF "ChainStat" AS character 
+  DESCRIPTION "Master, Table, Index or BLOB"
+  FORMAT "x(32)"
+  INITIAL ""
+  MAX-WIDTH 64
+  ORDER 50
+
+ADD FIELD "ChainBlocks" OF "ChainStat" AS int64 
+  FORMAT ">>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 80
+
+ADD FIELD "BgnTime" OF "ChainStat" AS datetime 
+  DESCRIPTION "msg #14157: LIST OF FREE CLUSTER CHAIN BLOCKS
+msg # 3880:         LIST OF FREE CHAIN BLOCKS
+msg # 3897:         LIST OF RM CHAIN BLOCKS
+msg # 7283:         LIST OF INDEX DELETE CHAIN BLOCKS"
+  FORMAT "99/99/9999 HH:MM:SS.SSS"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 120
+
+ADD FIELD "RunInterval" OF "ChainStat" AS decimal 
+  FORMAT ">>>,>>>,>>9.999"
+  INITIAL ?
+  MAX-WIDTH 17
+  DECIMALS 3
+  ORDER 140
+
+ADD FIELD "SeekPath" OF "ChainStat" AS int64 
+  FORMAT ">>>,>>>,>>>,>>>,>>>,>>9"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 90
+
+ADD FIELD "MinDbkey" OF "ChainStat" AS int64 
+  FORMAT ">>>>>>>>>9"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 100
+
+ADD FIELD "MaxDbkey" OF "ChainStat" AS int64 
+  FORMAT ">>>>>>>>>9"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 110
+
+ADD FIELD "EndTime" OF "ChainStat" AS datetime 
+  DESCRIPTION "msg #14161: %J cluster(s) found in the free cluster chain.
+msg #14155: %J block(s) found in the free chain of %s object %i
+msg #14172: %J block(s) found in the RM chain of %s object %i
+msg #14176: %J block(s) found in the Index Delete chain of %s object %i"
+  FORMAT "99/99/9999 HH:MM:SS.SSS"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 130
+
+ADD FIELD "ChainOrder" OF "ChainStat" AS integer 
+  DESCRIPTION """Dog-nail"" for V11: the sequential number of ""LIST OF * CHAIN BLOCKS"""
+  FORMAT ">>>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 60
+
+ADD FIELD "ObjectGroup" OF "ChainStat" AS character 
+  DESCRIPTION "The list of the attributes as reported in ""Partition/Tenant/Group"" column in the output of dbanalys V11.5."
+  FORMAT "x(22)"
+  INITIAL ""
+  LABEL "Partition/Tenant/Group"
+  MAX-WIDTH 44
+  ORDER 40
+
+ADD INDEX "ObjectNumber" ON "ChainStat" 
+  AREA "Main Index Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "AreaNumber" ASCENDING 
+  INDEX-FIELD "ChainType" ASCENDING 
+  INDEX-FIELD "ObjectType" ASCENDING 
+  INDEX-FIELD "ObjectNumber" ASCENDING 
+  INDEX-FIELD "ObjectGroup" ASCENDING 
+
+ADD INDEX "ChainOrder" ON "ChainStat" 
+  AREA "Main Index Area"
+  UNIQUE
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "ChainOrder" ASCENDING 
+
+ADD TABLE "DbAlias"
+  AREA "Main Table Area"
+  DESCRIPTION "Alias for production db name"
+  DUMP-NAME "dbalias"
+
+ADD FIELD "Db_Name" OF "DbAlias" AS character 
+  DESCRIPTION """Logical"" db name that can be used in the outgoing reports. By default it equates to a db name in the incoming statistics reports (DbReport.Db_Name)."
+  FORMAT "x(11)"
+  INITIAL ""
+  MAX-WIDTH 22
+  ORDER 40
+
+ADD FIELD "Db_Path" OF "DbAlias" AS character 
+  DESCRIPTION """Logical"" path name that can be used in the outgoing reports. By default it equates to a path name in the incoming statistics reports (DbReport.Db_Path)."
+  FORMAT "x(64)"
+  INITIAL ""
+  MAX-WIDTH 488
+  ORDER 50
+
+ADD FIELD "Db_Desc" OF "DbAlias" AS character 
+  DESCRIPTION "Auxiliary text describing the database."
+  FORMAT "x(64)"
+  INITIAL ""
+  MAX-WIDTH 128
+  ORDER 70
+
+ADD FIELD "HostId" OF "DbAlias" AS integer 
+  FORMAT ">>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 20
+
+ADD FIELD "Db_Id" OF "DbAlias" AS integer 
+  FORMAT ">>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 30
+
+ADD FIELD "Db_Alias" OF "DbAlias" AS character 
+  FORMAT "x(11)"
+  INITIAL ""
+  MAX-WIDTH 22
+  ORDER 10
+
+ADD FIELD "CreateTime" OF "DbAlias" AS datetime 
+  DESCRIPTION "The time when the DbALias record was created."
+  FORMAT "99/99/9999 HH:MM:SS.SSS"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 90
+
+ADD FIELD "Priority" OF "DbAlias" AS integer 
+  DESCRIPTION "New DbReport records from HostName/Db_Path/Db_Name will linked to a DbAlias record that has a highest priority."
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 80
+
+ADD FIELD "Db_Guid" OF "DbAlias" AS character 
+  DESCRIPTION "_Db._Db-guid: This is the current globally unique identifier (GUID) for the database to support the aggregation of data across multiple databases."
+  FORMAT "X(28)"
+  INITIAL ""
+  MAX-WIDTH 56
+  ORDER 60
+
+ADD INDEX "Db_Alias" ON "DbAlias" 
+  AREA "Main Index Area"
+  PRIMARY
+  DESCRIPTION "Non-unique index: an alias can combine data from the different databases in one entity."
+  INDEX-FIELD "Db_Alias" ASCENDING 
+
+ADD INDEX "DbPriority" ON "DbAlias" 
+  AREA "Main Index Area"
+  INDEX-FIELD "HostId" ASCENDING 
+  INDEX-FIELD "Priority" ASCENDING 
+
+ADD INDEX "Db_Id" ON "DbAlias" 
+  AREA "Main Index Area"
+  UNIQUE
+  INDEX-FIELD "Db_Id" ASCENDING 
+
+ADD INDEX "Db_Path" ON "DbAlias" 
+  AREA "Main Index Area"
+  INDEX-FIELD "HostId" ASCENDING 
+  INDEX-FIELD "Db_Name" ASCENDING 
+  INDEX-FIELD "Db_Path" ASCENDING 
+
+ADD TABLE "DbHost"
+  AREA "Main Table Area"
+  DESCRIPTION "Alias for production host names"
+  DUMP-NAME "dbhost"
+
+ADD FIELD "HostName" OF "DbHost" AS character 
+  DESCRIPTION """Physical"" host name of the loaded reports. Mainly it's a name of folder where a report resides in. Unlike HostAlias it's not a unique name."
+  FORMAT "x(28)"
+  INITIAL ""
+  MAX-WIDTH 56
+  ORDER 20
+
+ADD FIELD "HostDesc" OF "DbHost" AS character 
+  DESCRIPTION "Auxiliary comments describing the host"
+  FORMAT "x(64)"
+  INITIAL ""
+  MAX-WIDTH 128
+  ORDER 40
+
+ADD FIELD "HostId" OF "DbHost" AS integer 
+  FORMAT ">>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 10
+
+ADD FIELD "HostAlias" OF "DbHost" AS character 
+  DESCRIPTION """Logical"" host name that is used to combine data from different hosts in one report. By default it equates to HostName but unlike the latter the HostAlias is a unique name."
+  FORMAT "x(28)"
+  INITIAL ""
+  MAX-WIDTH 56
+  ORDER 30
+
+ADD FIELD "CreateTime" OF "DbHost" AS datetime 
+  DESCRIPTION "The time when the DbHost record was created."
+  FORMAT "99/99/9999 HH:MM:SS.SSS"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 60
+
+ADD FIELD "Priority" OF "DbHost" AS integer 
+  DESCRIPTION "Newly DbReport records from HostName will linked to a DbHost record that has a highest priority."
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 50
+
+ADD INDEX "HostAlias" ON "DbHost" 
+  AREA "Main Index Area"
+  UNIQUE
+  PRIMARY
+  DESCRIPTION "HostAlias is a unique name"
+  INDEX-FIELD "HostAlias" ASCENDING 
+
+ADD INDEX "HostId" ON "DbHost" 
+  AREA "Main Index Area"
+  UNIQUE
+  INDEX-FIELD "HostId" ASCENDING 
+
+ADD INDEX "HostName" ON "DbHost" 
+  AREA "Main Index Area"
+  DESCRIPTION "HostName is a non-unique name"
+  INDEX-FIELD "HostName" ASCENDING 
+
+ADD INDEX "HostPriority" ON "DbHost" 
+  AREA "Main Index Area"
+  INDEX-FIELD "HostName" ASCENDING 
+  INDEX-FIELD "Priority" ASCENDING 
+
+ADD TABLE "DbStat"
+  AREA "Main Table Area"
+  DESCRIPTION "Information about the source file with the statistics created by one of the Progress utilities (dbanalys, idxblockreport, viewB2 etc)."
+  DUMP-NAME "dbstat"
+
+ADD FIELD "StatId" OF "DbStat" AS integer 
+  FORMAT ">>>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 10
+
+ADD FIELD "Db_Name" OF "DbStat" AS character 
+  DESCRIPTION "Database name (excluding the pathname and the .db extension) upto 11 characters."
+  FORMAT "x(11)"
+  INITIAL ""
+  MAX-WIDTH 22
+  ORDER 40
+
+ADD FIELD "Db_Path" OF "DbStat" AS character 
+  DESCRIPTION "Pathnames (excluding the database name) upto 255 characters."
+  FORMAT "x(64)"
+  INITIAL ""
+  MAX-WIDTH 488
+  ORDER 50
+
+ADD FIELD "BgnTime" OF "DbStat" AS datetime 
+  FORMAT "99/99/9999 HH:MM:SS.SSS"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 180
+
+ADD FIELD "EndTime" OF "DbStat" AS datetime 
+  FORMAT "99/99/9999 HH:MM:SS.SSS"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 190
+
+ADD FIELD "RunInterval" OF "DbStat" AS decimal 
+  FORMAT ">>>,>>>,>>9.999"
+  INITIAL ?
+  MAX-WIDTH 17
+  DECIMALS 3
+  ORDER 200
+
+ADD FIELD "SourceTime" OF "DbStat" AS datetime 
+  DESCRIPTION "Timestamp of source file or time when the source file was loaded."
+  FORMAT "99/99/9999 HH:MM:SS"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 160
+
+ADD FIELD "SourceFile" OF "DbStat" AS character 
+  DESCRIPTION "Source file used to create the statistics"
+  FORMAT "x(64)"
+  INITIAL ""
+  MAX-WIDTH 144
+  ORDER 150
+
+ADD FIELD "CreateTime" OF "DbStat" AS datetime 
+  DESCRIPTION "The time when the DbStat record was created."
+  FORMAT "99/99/9999 HH:MM:SS"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 170
+
+ADD FIELD "Db_Id" OF "DbStat" AS integer 
+  FORMAT ">>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 30
+
+ADD FIELD "AreaMD5" OF "DbStat" AS raw 
+  FORMAT "x(16)"
+  INITIAL ""
+  MAX-WIDTH 32
+  ORDER 240
+
+ADD FIELD "SchemaMD5" OF "DbStat" AS raw 
+  FORMAT "x(16)"
+  INITIAL ""
+  MAX-WIDTH 32
+  ORDER 250
+
+ADD FIELD "DbBlockSize" OF "DbStat" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 90
+
+ADD FIELD "SourceType" OF "DbStat" AS character 
+  DESCRIPTION "Type of a source information or a name of procedure used to parse and load a source file."
+  FORMAT "x(64)"
+  INITIAL ""
+  MAX-WIDTH 16
+  ORDER 140
+
+ADD FIELD "Db_Guid" OF "DbStat" AS character 
+  DESCRIPTION "_Db._Db-guid: This is the current globally unique identifier (GUID) for the database to support the aggregation of data across multiple databases."
+  FORMAT "X(28)"
+  INITIAL ""
+  MAX-WIDTH 56
+  ORDER 70
+
+ADD FIELD "PhaseTime" OF "DbStat" AS datetime 
+  FORMAT "99/99/9999 HH:MM:SS.SSS"
+  INITIAL ?
+  MAX-WIDTH 80
+  EXTENT 8
+  ORDER 220
+
+ADD FIELD "PhaseName" OF "DbStat" AS character 
+  FORMAT "x(24)"
+  INITIAL ""
+  MAX-WIDTH 144
+  EXTENT 8
+  ORDER 210
+
+ADD FIELD "Db_Desc" OF "DbStat" AS character 
+  DESCRIPTION "_Db-Detail._Db-description: This is a meaningful description of the database associated with the current database GUID, used to describe the GUID."
+  FORMAT "x(64)"
+  INITIAL ""
+  MAX-WIDTH 128
+  ORDER 80
+
+ADD FIELD "Db_Host" OF "DbStat" AS character 
+  DESCRIPTION "Host name of db. If statistics report does not have db host name then a name of folder where the report resides in will be used as host name."
+  FORMAT "x(28)"
+  INITIAL ""
+  MAX-WIDTH 56
+  ORDER 60
+
+ADD FIELD "StatDesc" OF "DbStat" AS character 
+  DESCRIPTION "Dbanalys options"
+  FORMAT "x(32)"
+  INITIAL ""
+  MAX-WIDTH 64
+  ORDER 20
+
+ADD FIELD "GroupEnabled" OF "DbStat" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  MAX-WIDTH 1
+  ORDER 130
+
+ADD FIELD "NumAreas" OF "DbStat" AS integer 
+  FORMAT ">>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 230
+
+ADD FIELD "DbCreateTime" OF "DbStat" AS datetime 
+  DESCRIPTION "_MstrBlk-crdate or _DbStatus-CreateDate"
+  FORMAT "99/99/9999 HH:MM:SS"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 100
+
+ADD FIELD "DbSchemaTime" OF "DbStat" AS datetime 
+  DESCRIPTION "Max of _File._Last-change"
+  FORMAT "99/99/9999 HH:MM:SS"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 110
+
+ADD FIELD "DbStartTime" OF "DbStat" AS datetime 
+  DESCRIPTION "_MstrBlk-oprdate or _DbStatus-starttime"
+  FORMAT "99/99/9999 HH:MM:SS"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 120
+
+ADD INDEX "StatId" ON "DbStat" 
+  AREA "Main Index Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "StatId" ASCENDING 
+
+ADD INDEX "Db_Id" ON "DbStat" 
+  AREA "Main Index Area"
+  INDEX-FIELD "Db_Id" ASCENDING 
+
+ADD TABLE "DbStatError"
+  AREA "Main Table Area"
+  DESCRIPTION "Errors either found in the report itself or generated while parsing the report's output."
+  DUMP-NAME "dbstaterror"
+
+ADD FIELD "StatId" OF "DbStatError" AS integer 
+  FORMAT ">>>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 10
+
+ADD FIELD "ErrorNumber" OF "DbStatError" AS integer 
+  FORMAT "->>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 30
+
+ADD FIELD "ErrorSource" OF "DbStatError" AS character 
+  DESCRIPTION "The line in the source file where the error was rised."
+  FORMAT "x(64)"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 50
+
+ADD FIELD "ErrorMessage" OF "DbStatError" AS character 
+  FORMAT "x(64)"
+  INITIAL ""
+  LABEL "ErrorText"
+  MAX-WIDTH 128
+  ORDER 40
+
+ADD FIELD "AreaNumber" OF "DbStatError" AS integer 
+  FORMAT ">>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 20
+
+ADD INDEX "ErrorNumber" ON "DbStatError" 
+  AREA "Main Index Area"
+  PRIMARY
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "ErrorNumber" ASCENDING 
+
+ADD TABLE "IndexField"
+  AREA "Main Table Area"
+  DESCRIPTION "It's a partial copy of the _Field records but only those records that are index components (in other words, the ones that have the correspondent _IndexField"
+  DUMP-NAME "indexfield"
+
+ADD FIELD "StatId" OF "IndexField" AS integer 
+  FORMAT ">>>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 10
+
+ADD FIELD "FieldId" OF "IndexField" AS integer 
+  DESCRIPTION "Unique (per StatId) identifier of IndexField records"
+  FORMAT ">>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 20
+
+ADD FIELD "TableNumber" OF "IndexField" AS integer 
+  FORMAT "->>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 30
+
+ADD FIELD "FieldName" OF "IndexField" AS character 
+  DESCRIPTION "Source: _File._File-Name"
+  FORMAT "x(32)"
+  INITIAL ""
+  MAX-WIDTH 64
+  ORDER 40
+
+ADD FIELD "FieldType" OF "IndexField" AS character 
+  DESCRIPTION "Source: _Field._Data-Type"
+  FORMAT "x(9)"
+  INITIAL ""
+  MAX-WIDTH 18
+  ORDER 50
+
+ADD FIELD "FieldDesc" OF "IndexField" AS character 
+  DESCRIPTION "Source: _Field._Desc"
+  FORMAT "x(64)"
+  INITIAL ""
+  MAX-WIDTH 128
+  ORDER 60
+
+ADD FIELD "FieldUpdates" OF "IndexField" AS int64 
+  DESCRIPTION "Source: the difference between _IndexStat._IndexStat-create and _TableStat._TableStat-create"
+  FORMAT ">>>,>>,>>>,>>>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 70
+
+ADD FIELD "IndexCount" OF "IndexField" AS integer 
+  DESCRIPTION "The number of indexes that use the field."
+  FORMAT ">>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 80
+
+ADD INDEX "FieldName" ON "IndexField" 
+  AREA "Main Index Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "TableNumber" ASCENDING 
+  INDEX-FIELD "FieldName" ASCENDING 
+
+ADD INDEX "FieldId" ON "IndexField" 
+  AREA "Main Index Area"
+  UNIQUE
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "FieldId" ASCENDING 
+
+ADD TABLE "IndexStat"
+  AREA "Main Table Area"
+  DUMP-NAME "indexstat"
+
+ADD FIELD "StatId" OF "IndexStat" AS integer 
+  FORMAT ">>>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 10
+
+ADD FIELD "AreaNumber" OF "IndexStat" AS integer 
+  FORMAT ">>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 20
+
+ADD FIELD "IndexNumber" OF "IndexStat" AS integer 
+  FORMAT "->>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 50
+
+ADD FIELD "TableOwner" OF "IndexStat" AS character 
+  FORMAT "x(32)"
+  INITIAL ""
+  MAX-WIDTH 64
+  ORDER 30
+
+ADD FIELD "TableName" OF "IndexStat" AS character 
+  FORMAT "x(32)"
+  INITIAL ""
+  MAX-WIDTH 64
+  ORDER 40
+
+ADD FIELD "IndexName" OF "IndexStat" AS character 
+  FORMAT "x(32)"
+  INITIAL ""
+  MAX-WIDTH 64
+  ORDER 60
+
+ADD FIELD "IndexFields" OF "IndexStat" AS integer 
+  DESCRIPTION "Source: _Index._num-comp"
+  FORMAT ">>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 80
+
+ADD FIELD "IndexLevels" OF "IndexStat" AS integer 
+  FORMAT "9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 160
+
+ADD FIELD "IndexBlocks" OF "IndexStat" AS int64 
+  FORMAT ">>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 170
+
+ADD FIELD "IndexSize" OF "IndexStat" AS int64 
+  FORMAT ">>>,>>>,>>>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 180
+
+ADD FIELD "SizeInChar" OF "IndexStat" AS character 
+  FORMAT "x(6)"
+  INITIAL "0"
+  MAX-WIDTH 12
+  ORDER 190
+
+ADD FIELD "IdxReads" OF "IndexStat" AS int64 
+  DESCRIPTION "Source: _IndexStat._IndexStat-read"
+  FORMAT ">>>,>>,>>>,>>>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 210
+
+ADD FIELD "IdxCreates" OF "IndexStat" AS int64 
+  DESCRIPTION "Source: _IndexStat._IndexStat-create"
+  FORMAT ">>>,>>,>>>,>>>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 220
+
+ADD FIELD "IdxDeletes" OF "IndexStat" AS int64 
+  DESCRIPTION "Source: _IndexStat._IndexStat-delete"
+  FORMAT ">>>,>>,>>>,>>>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 230
+
+ADD FIELD "BlockReads" OF "IndexStat" AS int64 
+  DESCRIPTION "Source: _IndexStat._IndexStat-OsRead"
+  FORMAT ">>>,>>,>>>,>>>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 240
+
+ADD FIELD "BlockFree" OF "IndexStat" AS int64 
+  DESCRIPTION "Source: _IndexStat._IndexStat-blockdelete"
+  FORMAT ">>>,>>,>>>,>>>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 250
+
+ADD FIELD "ObjectAttrib" OF "IndexStat" AS integer 
+  DESCRIPTION "Source: _StorageObject._Object-attrib"
+  FORMAT ">>>>>>>>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 120
+
+ADD FIELD "AltBufferPool" OF "IndexStat" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  MAX-WIDTH 1
+  ORDER 130
+
+ADD FIELD "IndexCRC" OF "IndexStat" AS integer 
+  DESCRIPTION "Source: _Index._Idx-CRC"
+  FORMAT ">>>>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 90
+
+ADD FIELD "IndexAttrib" OF "IndexStat" AS character 
+  FORMAT "x(3)"
+  INITIAL ""
+  MAX-WIDTH 6
+  ORDER 110
+
+ADD FIELD "RootBlock" OF "IndexStat" AS recid 
+  DESCRIPTION "Source: _StorageObject._Object-root"
+  FORMAT ">>>>>>9"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 140
+
+ADD FIELD "ObjectBlock" OF "IndexStat" AS recid 
+  DESCRIPTION "Source: _StorageObject._Object-block"
+  FORMAT ">>>>>>9"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 150
+
+ADD FIELD "IndexGroup" OF "IndexStat" AS character 
+  DESCRIPTION "The list of the attributes as reported in ""Partition/Tenant/Group"" column in the output of dbanalys V11.5."
+  FORMAT "x(22)"
+  INITIAL ""
+  LABEL "Partition/Tenant/Group"
+  MAX-WIDTH 44
+  ORDER 70
+
+ADD FIELD "IndexField" OF "IndexStat" AS integer 
+  DESCRIPTION "Unique (per StatId) identifier of IndexField records"
+  FORMAT ">>9"
+  INITIAL "0"
+  MAX-WIDTH 128
+  EXTENT 16
+  ORDER 260
+
+ADD FIELD "ActiveIndex" OF "IndexStat" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  MAX-WIDTH 1
+  ORDER 100
+
+ADD FIELD "IndexUtil" OF "IndexStat" AS decimal 
+  FORMAT "99.9"
+  INITIAL "0"
+  MAX-WIDTH 17
+  DECIMALS 2
+  ORDER 200
+
+ADD INDEX "AreaNumber" ON "IndexStat" 
+  AREA "Main Index Area"
+  PRIMARY
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "AreaNumber" ASCENDING 
+  INDEX-FIELD "TableName" ASCENDING 
+  INDEX-FIELD "IndexName" ASCENDING 
+
+ADD INDEX "IndexName" ON "IndexStat" 
+  AREA "Main Index Area"
+  UNIQUE
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "TableName" ASCENDING 
+  INDEX-FIELD "IndexName" ASCENDING 
+  INDEX-FIELD "IndexGroup" ASCENDING 
+  INDEX-FIELD "TableOwner" ASCENDING 
+
+ADD INDEX "IndexNumber" ON "IndexStat" 
+  AREA "Main Index Area"
+  UNIQUE
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "IndexNumber" ASCENDING 
+  INDEX-FIELD "IndexGroup" ASCENDING 
+
+ADD TABLE "LobStat"
+  AREA "Main Table Area"
+  DUMP-NAME "lobstat"
+
+ADD FIELD "StatId" OF "LobStat" AS integer 
+  FORMAT ">>>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 10
+
+ADD FIELD "AreaNumber" OF "LobStat" AS integer 
+  FORMAT ">>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 20
+
+ADD FIELD "LobType" OF "LobStat" AS character 
+  DESCRIPTION "Source: _Field._Attributes1
+BLOB or CLOB"
+  FORMAT "x(4)"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 80
+
+ADD FIELD "LobAttr" OF "LobStat" AS character 
+  FORMAT "x(32)"
+  INITIAL ""
+  MAX-WIDTH 64
+  ORDER 90
+
+ADD FIELD "LobName" OF "LobStat" AS character 
+  FORMAT "x(32)"
+  INITIAL ""
+  MAX-WIDTH 64
+  ORDER 60
+
+ADD FIELD "LobNumber" OF "LobStat" AS integer 
+  DESCRIPTION "Source: _Field._Fld-stlen"
+  FORMAT ">>>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 50
+
+ADD FIELD "LobSize" OF "LobStat" AS character 
+  DESCRIPTION "Source: _Field._Fld-misc2"
+  FORMAT "x(8)"
+  INITIAL ""
+  MAX-WIDTH 16
+  ORDER 100
+
+ADD FIELD "LobCase" OF "LobStat" AS character 
+  DESCRIPTION "Source: _Field._Fld-case"
+  FORMAT "x(8)"
+  INITIAL ""
+  MAX-WIDTH 16
+  ORDER 110
+
+ADD FIELD "LobCharset" OF "LobStat" AS character 
+  DESCRIPTION "Source: _Field._Charset"
+  FORMAT "x(8)"
+  INITIAL ""
+  MAX-WIDTH 16
+  ORDER 120
+
+ADD FIELD "LobCollation" OF "LobStat" AS character 
+  DESCRIPTION "Source: _Field._Collation"
+  FORMAT "x(8)"
+  INITIAL ""
+  MAX-WIDTH 16
+  ORDER 130
+
+ADD FIELD "ObjectAttrib" OF "LobStat" AS integer 
+  DESCRIPTION "Source: _StorageObject._Object-attrib"
+  FORMAT ">>>>>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 140
+
+ADD FIELD "TableName" OF "LobStat" AS character 
+  FORMAT "x(32)"
+  INITIAL ""
+  MAX-WIDTH 64
+  ORDER 40
+
+ADD FIELD "TableOwner" OF "LobStat" AS character 
+  FORMAT "x(32)"
+  INITIAL ""
+  MAX-WIDTH 64
+  ORDER 30
+
+ADD FIELD "AltBufferPool" OF "LobStat" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  MAX-WIDTH 1
+  ORDER 150
+
+ADD FIELD "LobGroup" OF "LobStat" AS character 
+  DESCRIPTION "The list of the attributes as reported in ""Partition/Tenant/Group"" column in the output of dbanalys V11.5."
+  FORMAT "x(22)"
+  INITIAL ""
+  LABEL "Partition/Tenant/Group"
+  MAX-WIDTH 44
+  ORDER 70
+
+ADD FIELD "DataBlocks" OF "LobStat" AS int64 
+  DESCRIPTION "Estimation"
+  FORMAT ">>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 160
+
+ADD INDEX "AreaNumber" ON "LobStat" 
+  AREA "Main Index Area"
+  PRIMARY
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "AreaNumber" ASCENDING 
+  INDEX-FIELD "TableName" ASCENDING 
+  INDEX-FIELD "LobName" ASCENDING 
+
+ADD INDEX "LobName" ON "LobStat" 
+  AREA "Main Index Area"
+  UNIQUE
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "TableName" ASCENDING 
+  INDEX-FIELD "LobName" ASCENDING 
+  INDEX-FIELD "LobGroup" ASCENDING 
+  INDEX-FIELD "TableOwner" ASCENDING 
+
+ADD INDEX "LobNumber" ON "LobStat" 
+  AREA "Main Index Area"
+  UNIQUE
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "LobNumber" ASCENDING 
+  INDEX-FIELD "LobGroup" ASCENDING 
+
+ADD TABLE "TableStat"
+  AREA "Main Table Area"
+  DUMP-NAME "tablestat"
+
+ADD FIELD "StatId" OF "TableStat" AS integer 
+  FORMAT ">>>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 10
+
+ADD FIELD "AreaNumber" OF "TableStat" AS integer 
+  FORMAT ">>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 20
+
+ADD FIELD "TableNumber" OF "TableStat" AS integer 
+  FORMAT "->>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 30
+
+ADD FIELD "TableOwner" OF "TableStat" AS character 
+  FORMAT "x(32)"
+  INITIAL ""
+  MAX-WIDTH 64
+  ORDER 40
+
+ADD FIELD "TableName" OF "TableStat" AS character 
+  FORMAT "x(32)"
+  INITIAL ""
+  MAX-WIDTH 64
+  ORDER 50
+
+ADD FIELD "RecCount" OF "TableStat" AS int64 
+  FORMAT ">>>,>>>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 180
+
+ADD FIELD "FragCount" OF "TableStat" AS int64 
+  FORMAT ">>>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 190
+
+ADD FIELD "TableSize" OF "TableStat" AS int64 
+  FORMAT ">>>,>>>,>>>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 200
+
+ADD FIELD "SizeInChar" OF "TableStat" AS character 
+  FORMAT "x(6)"
+  INITIAL ""
+  MAX-WIDTH 12
+  ORDER 210
+
+ADD FIELD "MinRecSize" OF "TableStat" AS integer 
+  FORMAT ">>>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 220
+
+ADD FIELD "MaxRecSize" OF "TableStat" AS integer 
+  FORMAT ">>>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 230
+
+ADD FIELD "MeanRecSize" OF "TableStat" AS integer 
+  FORMAT ">>>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 240
+
+ADD FIELD "DataBlocks" OF "TableStat" AS int64 
+  DESCRIPTION "Estimation"
+  FORMAT ">>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 260
+
+ADD FIELD "CreateLimit" OF "TableStat" AS integer 
+  DESCRIPTION "Source: _StorageObject._Create-Limit"
+  FORMAT ">>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 70
+
+ADD FIELD "TossLimit" OF "TableStat" AS integer 
+  DESCRIPTION "Source: _StorageObject._Toss-Limit"
+  FORMAT ">>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 80
+
+ADD FIELD "LastChange" OF "TableStat" AS datetime 
+  DESCRIPTION "Source: _File._Last-change"
+  FORMAT "99/99/9999 HH:MM:SS"
+  INITIAL ?
+  MAX-WIDTH 8
+  ORDER 90
+
+ADD FIELD "TableCRC" OF "TableStat" AS integer 
+  DESCRIPTION "Source: _File._CRC"
+  FORMAT ">>>>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 100
+
+ADD FIELD "NumFields" OF "TableStat" AS integer 
+  DESCRIPTION "Source: _File._numfld"
+  FORMAT ">>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 110
+
+ADD FIELD "NumKeys" OF "TableStat" AS integer 
+  DESCRIPTION "Source: _File._numkey"
+  FORMAT ">>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 120
+
+ADD FIELD "NumKeyComp" OF "TableStat" AS integer 
+  DESCRIPTION "Source: _File._numkcomp"
+  FORMAT ">>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 140
+
+ADD FIELD "TemplateSize" OF "TableStat" AS integer 
+  FORMAT ">>,>>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 150
+
+ADD FIELD "ObjectAttrib" OF "TableStat" AS integer 
+  DESCRIPTION "Source: _StorageObject._Object-attrib"
+  FORMAT ">>>>>>9"
+  INITIAL "0"
+  MAX-WIDTH 4
+  ORDER 160
+
+ADD FIELD "AltBufferPool" OF "TableStat" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  MAX-WIDTH 1
+  ORDER 170
+
+ADD FIELD "RecReads" OF "TableStat" AS int64 
+  DESCRIPTION "Source: _TableStat._TableStat-read"
+  FORMAT ">>>,>>,>>>,>>>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 270
+
+ADD FIELD "RecUpdates" OF "TableStat" AS int64 
+  DESCRIPTION "Source: _TableStat._TableStat-update"
+  FORMAT ">>>,>>,>>>,>>>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 280
+
+ADD FIELD "RecCreates" OF "TableStat" AS int64 
+  DESCRIPTION "Source: _TableStat._TableStat-create"
+  FORMAT ">>>,>>,>>>,>>>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 290
+
+ADD FIELD "RecDeletes" OF "TableStat" AS int64 
+  DESCRIPTION "Source: _TableStat._TableStat-delete"
+  FORMAT ">>>,>>,>>>,>>>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 300
+
+ADD FIELD "BlockReads" OF "TableStat" AS int64 
+  DESCRIPTION "Source: _TableStat._TableStat-OsRead"
+  FORMAT ">>>,>>,>>>,>>>,>>>,>>>,>>9"
+  INITIAL "0"
+  MAX-WIDTH 8
+  ORDER 310
+
+ADD FIELD "NumKeyFields" OF "TableStat" AS integer 
+  DESCRIPTION "Source: _File._numkfld"
+  FORMAT ">>9"
+  INITIAL ?
+  MAX-WIDTH 4
+  ORDER 130
+
+ADD FIELD "TableGroup" OF "TableStat" AS character 
+  DESCRIPTION "The list of the attributes as reported in ""Partition/Tenant/Group"" column in the output of dbanalys V11.5."
+  FORMAT "x(22)"
+  INITIAL ""
+  LABEL "Partition/Tenant/Group"
+  MAX-WIDTH 44
+  ORDER 60
+
+ADD FIELD "ScatterFact" OF "TableStat" AS decimal 
+  FORMAT ">9.9"
+  INITIAL "0"
+  MAX-WIDTH 17
+  DECIMALS 2
+  ORDER 250
+
+ADD INDEX "AreaNumber" ON "TableStat" 
+  AREA "Main Index Area"
+  PRIMARY
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "AreaNumber" ASCENDING 
+  INDEX-FIELD "TableName" ASCENDING 
+
+ADD INDEX "TableName" ON "TableStat" 
+  AREA "Main Index Area"
+  UNIQUE
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "TableName" ASCENDING 
+  INDEX-FIELD "TableGroup" ASCENDING 
+  INDEX-FIELD "TableOwner" ASCENDING 
+
+ADD INDEX "TableNumber" ON "TableStat" 
+  AREA "Main Index Area"
+  UNIQUE
+  INDEX-FIELD "StatId" ASCENDING 
+  INDEX-FIELD "TableNumber" ASCENDING 
+  INDEX-FIELD "TableGroup" ASCENDING 
+
+.
+PSC
+cpstream=undefined
+.
+0000035234

@@ -1,0 +1,27 @@
+#####################################################################################
+# Bellow will add the date to each line of the copied truncated DB.lg               #
+# Author: Mukesh Wadkar                                                             # 
+#####################################################################################
+#LOGPATH=/probackup/gall/prd/cosmos/db_logs
+LOGPATH=/probackup/gall/prd/cosmos/db_logs
+FILEPATH=/pro/admin/bin
+#now=$(date +"%Y:%m:%d")
+now=$(date +%d_%m_%y )
+/pro/admin/bin/log_trunc.sh
+ls -ltr $LOGPATH/*.lg > $FILEPATH/list.txt
+awk '{print $9;}' $FILEPATH/list.txt > $FILEPATH/list1.txt
+for i in `cat $FILEPATH/list1.txt`
+do
+basename $i >> $FILEPATH/list2.txt
+done
+#cd /avg/bin
+cd $FILEPATH
+file=list2.txt
+while IFS= read -r line
+do
+/pro/admin/bin/new_add_date.sh $LOGPATH/$line /arcsight/$line.$now >log.txt
+done < "$file"
+rm list.txt
+rm list1.txt
+rm list2.txt
+rm log.txt 

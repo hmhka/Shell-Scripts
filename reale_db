@@ -1,0 +1,144 @@
+#!/bin/bash
+############################################################################
+# PROGRAM NAME:	reale_db
+# PROGRAMMER:	Scott King
+# DATE:		03/24/2001
+# VERSION:	1.0
+# REVISION:	
+# USAGE:	reale_db (start|stop)
+#
+# Added Secondary Appserver 03/14/2010 Vageesh
+# Logging 05/21/08 vkk
+# rewrite 4/2002 cpw
+# Added entry for lrm webspeed broker 22/09/2014 suneesh
+# Added entry for RDNG webspeed 24/01/2015   Shabbeer
+# Added entry for CMS  webspeed 05/02/2015   Suneesh
+# Password less restart         09/14/2015   Suneesh
+#############################################################################
+updown=$1
+IRflag=$2
+export IRflag
+dbup="/tmp"
+dbroot=/emc/reale/prod
+HOMEN=/usr/home/progress/bin
+DLCPATH=/usr/dlc/bin
+ulimit -n 8192
+dblog="/tmp/realedblog.txt"
+export dblog
+
+if [ $IRflag ]
+   then
+   dblist="amos mss"
+else
+   dblist="amos mss"
+fi
+
+weblist=""
+mv $dblog $dblog.old
+
+case $updown in
+start)
+
+   # Remove AI Hold tag
+   rm -f /emc/reale/ai_archive/archive.hold
+   echo "Now starting:" | tee -a $dblog
+   for db in $dblist
+   do
+      rm -f $dbup/$db.up
+      echo "  $db.db." | tee -a $dblog
+      $HOMEN/start_db $db PROD N  > /dev/null &
+   done
+
+   # The assumption is that vru, ctr, and cvu don't need checking
+   until [ -f $dbup/amos.up -a \
+           -f $dbup/mss.up ]
+   do
+      echo ".\c"
+      sleep 2
+   done
+    
+   for db in $dblist
+   do
+      $DLCPATH/proutil $dbroot/$db/data/$db -C busy > /dev/null
+      if [ $? = 0 ]
+         then
+         echo
+         echo '++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+         echo "$db.db  FAILED TO START" | tee -a $dblog
+         echo '++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+         echo
+         err="$db Failed to start| $err"
+      fi
+      done
+
+      if [ $IRflag ]
+         then
+         echo
+      else
+         # Start Background Request Processors & Webspeed
+         echo 
+         echo "Starting Background Request Processors..." | tee -a $dblog
+         /usr/home/progress/procstart
+         /usr/home/progress/procstart secondary
+         cd $HOMEN
+         appsrv_webspeed_stop_start.sh appsrv_webspeed_stop_start_all.par start
+         appsrv_webspeed_stop_start.sh appsrv_webspeed_stop_start2.par start
+         apache_start_stop.sh start 
+      fi
+   sleep 3
+  #rm /usr/home/progress/bin/stopweb_alerts.txt 
+   rm /emc/reale/apps/pseudo/stopweb_alerts.txt
+   rm /usr/home/progress/bin/stop_apache_alerts.txt
+   mv /emc/reale/apps/pseudo/rsdm.pf.hold /emc/reale/apps/pseudo/rsdm.pf
+
+   echo "All RealServicing databases are now online." | tee -a $dblog
+   ;;
+
+stop)
+   if [ $IRflag ]
+      then
+      echo
+   else
+     #touch /usr/home/progress/bin/stopweb_alerts.txt
+      touch /emc/reale/apps/pseudo/stopweb_alerts.txt
+      touch /usr/home/progress/bin/stop_apache_alerts.txt
+      mv /emc/reale/apps/pseudo/rsdm.pf /emc/reale/apps/pseudo/rsdm.pf.hold
+      cd $HOMEN
+      appsrv_webspeed_stop_start.sh appsrv_webspeed_stop_start_all.par stop
+      appsrv_webspeed_stop_start.sh appsrv_webspeed_stop_start2.par stop
+      apache_start_stop.sh stop
+
+   fi
+   sleep 2
+   echo "Now stopping:" | tee -a $dblog
+
+   for db in $dblist
+   do
+      echo "  $db.db." | tee -a $dblog
+      touch $dbup/$db.up
+      sleep 300 ## for p2o to complete after moving rsdm.pf to rsdm.pf.hold 
+      $HOMEN/stop_db $db PROD > /dev/null &
+   done
+   until [ ! -f $dbup/amos.up -a \
+           ! -f $dbup/mss.up ]
+   do
+      echo ".\c"
+      sleep 2
+   done
+   echo " "
+
+   if [ $IRflag ]
+      then
+      echo
+   else
+      echo "Allow shutdown swap to finish. Sleeping for 30 seconds" | tee -a $dblog
+      sleep 30
+      #Commented by Vijay  touch /emc/reale/ai_archive/archive.hold
+      echo "All RealServicing databases are now offline." | tee -a $dblog
+   fi
+   ;;
+
+*)
+   echo "USAGE: reale_db [start|stop]"
+   ;;
+esac

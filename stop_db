@@ -1,0 +1,158 @@
+#! /bin/sh
+#stop_db
+# **************************************************************************
+# This script will start Progress databases based on the input parameters
+# provided. The input parameters are:
+# 1. DB Name	('all' will start all databases)
+# 2. Region	('all' will start all regions. Refer to REGIONS.txt)
+# 11/13/01 Gurdip Singh numerous changes
+# 10/23/01 Gurdip Singh added for aimage new after shut down of DB
+# 4/9/402  Carl W - Merge versions to include IR
+# 6/24/03 Bill Duty - extend shutdown wait time before the -byF from
+#                     two minutes to 10 minutes to give DB's a chance
+#                     to stop normally withou a forced shutdown 
+# 05/21/08 Vinod K - Introdued logging
+# 10/14/08 Ravish Jajoo - Production Server Testing
+# **************************************************************************
+
+# Input file
+DLC=/usr/dlc;export DLC
+PROMSGS=$DLC/promsgs
+PROTERMCAP=$DLC/protermcap
+PROGHOME=/usr/home/progress
+PATH=.:/usr/local/bin:/bin:/sbin:$PROGHOME/bin:/usr/sbin:$DLC/bin:$DLC:/usr/ucb;export PATH
+DBREG=$PROGHOME/bin/db.registry
+DLCPATH=$DLC/bin
+touch  /usr/home/progress/bin/stop_db_alerts.txt
+if [ $# -ne 2 ]
+then
+  echo 'Usage: stop_db DBNAME REGION'
+  exit 1
+fi
+
+if [ $dblog ]   ## If the script has been called by reale_db, dblog will be exported
+then
+  echo
+else            ## If stop_db been called directly
+  dblog="/tmp/stopdblog.txt"
+  mv $dblog $dblog.old
+fi
+
+IN_DBNAME=`echo $1 | tr '[A-Z]' '[a-z]'`
+IN_ENV=`echo $2 | tr '[A-Z]' '[a-z]'`
+
+dbstop()
+{
+  # **************************************************************
+  # Input parameters are:
+  # 1. DB Name 
+  # 2. DB Path
+  # **************************************************************
+
+  # Stop  DB
+  touch /tmp/$1.up      # 11/13/01
+
+  $DLCPATH/proutil $2/$1 -C busy > /dev/null
+  if [ $? = 0 ]
+  then
+    echo
+    echo '++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+    echo $2/$1 ' is already offline.' | tee -a $dblog
+    echo '++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+    echo
+
+  else
+    echo
+    echo '++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+    echo 'Shutting down: '$2/$1 | tee -a $dblog
+    echo '++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+    echo
+
+    $DLCPATH/proshut $2/$1 -by &    #11/13/01
+
+    # If the Database is down, exit, otherwise force 
+    # after 10 minutes
+    i=1
+    while [ $i -le 40 ]
+    do
+      if [ -f $2/$1.lk ]
+      then 
+        sleep 15
+      fi
+      i=`expr $i + 1`
+    done
+
+    if [ -f $2/$1.lk ]
+      then
+      echo 'Initiating emergency shutdown after having waited for 10 minutes for '$2/$1 | tee -a $dblog
+      $DLCPATH/proshut $2/$1 -byF
+    fi
+
+    # IR Test
+    if [ $IRflag ]
+    then
+      echo
+    else
+      # Switch to a new AI extent 10/23/01 Gurdip
+      if [ "$AI" = "AI" ]     #11/13/01
+      then
+        echo
+        echo '++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+        echo 'Switching AI : '$2/$1 | tee -a $dblog
+        echo '++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+        echo
+
+        sleep 10
+        # Force a new extent
+#        _rfutil $2/$1 -C aimage new      #10/23/01
+        # Archive the new extent
+        echo 'Archiving the new AI extent : '$2/$1 | tee -a $dblog
+#        $PROGHOME/scripts/live/archive_ai $1
+        echo 'AI Archival done : '$2/$1 | tee -a $dblog
+      fi
+    fi
+
+  fi
+
+  rm -f /tmp/$1.up    #11/13/01
+}
+
+exec < $DBREG 
+# Skip the header line in the input file.
+read DBNAME
+
+while read DBNAME DBPATH ENV BDIR BNAME APW BIW AI AI_DIR
+do
+
+  DBNAME=`echo $DBNAME | tr '[A-Z]' '[a-z]'`
+  ENV=`echo $ENV | tr '[A-Z]' '[a-z]'`
+
+  do_stop=0
+
+  if [ "$IN_ENV" = "all" ]
+  then
+    if [ "$IN_DBNAME" = "all" -o "$IN_DBNAME" = "$DBNAME" ]
+    then
+      #rm $PROGHOME/bin/tmp/alldb.up
+      do_stop=1
+    fi
+  elif [ "$IN_ENV" = "$ENV" ]
+  then
+    if [ "$IN_DBNAME" = "all" -o "$IN_DBNAME" = "$DBNAME" ]
+    then
+      #rm $PROGHOME/bin/tmp/alldb.up
+      do_stop=1
+    fi
+  fi
+  
+  if [ "$do_stop" = "1" ]
+  then
+    if [ ! -f $DBPATH/$DBNAME.db ]
+    then
+      echo "Database: '$DBPATH/$DBNAME.db' does not exist" | tee -a $dblog
+    else
+      dbstop $DBNAME $DBPATH
+    fi
+  fi
+done
+
